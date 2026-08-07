@@ -1,12 +1,6 @@
 import '../App.css';
 
-export function Snake() {
-
-    const segments = [
-        [5, 5],
-        [4, 5],
-        [3, 5],
-    ];
+export function Snake({segments}) {
 
     const snakeBody = segments.map(([x, y], index) => (
         <div
