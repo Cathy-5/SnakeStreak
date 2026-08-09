@@ -31,6 +31,17 @@ function App() {
         return [newHead, ...prevSegments.slice(0, -1)];
       });
     }
+
+    // Go up
+    if (event.key == 'ArrowUp') {
+      setSegments((prevSegments) => {
+        const head = prevSegments[0];
+        const newHead = [head[0], head[1] - 1];
+
+        return [newHead, ...prevSegments.slice(0, -1)];
+      });
+    }
+
   };
 
   useEffect(() => {
