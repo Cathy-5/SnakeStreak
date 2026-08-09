@@ -2,17 +2,7 @@ import '../App.css'
 import Snake from './Snake'
 import Food from './Food'
 
-export default function GameBoard(){
-    const segments = [
-        [5, 5],
-        [4, 5],
-        [3, 5],
-    ];
-
-    const food = [
-        [10, 8],
-    ];
-
+export default function GameBoard( { segments, food } ){
     return (
         <div>
             <h2>Game board</h2>
