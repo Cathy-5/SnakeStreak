@@ -1,4 +1,3 @@
-
 import './App.css'
 import GameBoard from './components/GameBoard'
 import { useState, useEffect } from 'react'
@@ -11,11 +10,23 @@ function App() {
 
   const [food, setFood] = useState([[8, 5]]);
 
+  // Hanlde key down
   const handleKeyDown = (event) => {
+    // Go right
     if (event.key === 'ArrowRight') {
       setSegments((prevSegments) => {
         const head = prevSegments[0];
         const newHead = [head[0] + 1, head[1]];
+
+        return [newHead, ...prevSegments.slice(0, -1)];
+      });
+    }
+
+    // Go left
+    if (event.key == 'ArrowLeft') {
+      setSegments((prevSegments) => {
+        const head = prevSegments[0];
+        const newHead = [head[0] - 1, head[1]];
 
         return [newHead, ...prevSegments.slice(0, -1)];
       });
@@ -29,6 +40,7 @@ function App() {
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, []);
+
 
   return (
   <main>
