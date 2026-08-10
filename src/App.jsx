@@ -4,53 +4,66 @@ import { useState, useEffect } from 'react'
 
 function App() {
 
+  // The first segment is the head, each pair is [column, row].
   const [segments, setSegments] = useState([[5, 5],
         [4, 5],
         [3, 5]]);
 
-  const [food, setFood] = useState([[8, 5]]);
+  const [food] = useState([[8, 5]]);
+  const [direction, setDirection] = useState('RIGHT');
 
-  // Hanlde key down
-  const handleKeyDown = (event) => {
-    // Go right
-    if (event.key === 'ArrowRight') {
-      setSegments((prevSegments) => {
-        const head = prevSegments[0];
-        const newHead = [head[0] + 1, head[1]];
-
-        return [newHead, ...prevSegments.slice(0, -1)];
-      });
-    }
-
-    // Go left
-    if (event.key == 'ArrowLeft') {
-      setSegments((prevSegments) => {
-        const head = prevSegments[0];
-        const newHead = [head[0] - 1, head[1]];
-
-        return [newHead, ...prevSegments.slice(0, -1)];
-      });
-    }
-
-    // Go up
-    if (event.key == 'ArrowUp') {
-      setSegments((prevSegments) => {
-        const head = prevSegments[0];
-        const newHead = [head[0], head[1] - 1];
-
-        return [newHead, ...prevSegments.slice(0, -1)];
-      });
-    }
-
-  };
-
+  // Keyboard input changes directionm the timer below moves the snake.
   useEffect(() => {
+    const handleKeyDown = (event) => {
+      const nextDirections = {
+        ArrowRight: 'RIGHT',
+        ArrowLeft: 'LEFT',
+        ArrowUp: 'UP',
+        ArrowDown: 'DOWN',
+      };
+      const nextDirection = nextDirections[event.key];
+
+      if (!nextDirection) return;
+
+      event.preventDefault();
+
+      const reverseDirections = {
+        RIGHT: 'LEFT',
+        LEFT: 'RIGHT',
+        UP: 'DOWN',
+        DOWN: 'UP',
+      };
+
+      if (nextDirection !== reverseDirections[direction]) {
+        setDirection(nextDirection);
+      }
+    };
+
     window.addEventListener('keydown', handleKeyDown);
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, []);
+  }, [direction]);
+
+  // Move one grid cell at a fixed interval and remove the old tail.
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setSegments((prevSegments) => {
+        const head = prevSegments[0];
+        let newHead;
+
+        if (direction === 'RIGHT') newHead = [head[0] + 1, head[1]];
+        if (direction === 'LEFT') newHead = [head[0] - 1, head[1]];
+        if (direction === 'UP') newHead = [head[0], head[1] - 1];
+        if (direction === 'DOWN') newHead = [head[0], head[1] + 1];
+
+        return [newHead, ...prevSegments.slice(0, -1)];
+      });
+    }, 250);
+
+    return () => clearInterval(timer);
+  }, [direction]);
 
 
   return (
@@ -59,7 +72,8 @@ function App() {
     <p>A strategic twist on the classic Snake game. Eat three eggs of the same colour in a row to shrink the snake.</p>
     <div >
       <GameBoard segments={segments} food={food} />
-      <h2>Press the right arrow key</h2>
+      <h2>Use the arrow keys to steer</h2>
+      <h2>Direction: {direction}</h2>
       <h2>Snake length: {segments.length}</h2>
     </div>
   </main>
