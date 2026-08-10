@@ -1,6 +1,5 @@
 import './App.css'
 import GameBoard from './components/GameBoard'
-import MobileControls from './components/MobileControls'
 import RecordsDashboard from './components/RecordsDashboard'
 import WowSnake from './components/WowSnake'
 import {
@@ -868,8 +867,6 @@ function App() {
             hazardLifetime={HAZARD_PAIR_LIFETIME_MS}
           />
 
-          <MobileControls onDirectionChange={handleDirectionInput} />
-
           {feedback && <div className={`game-feedback ${feedback.type}`}>{feedback.text}</div>}
 
           <div className="power-statuses">
@@ -931,7 +928,7 @@ function App() {
           )}
         </div>
 
-        <p className="sr-only">Use the arrow keys, swipe the board, or use the direction buttons to steer.</p>
+        <p className="sr-only">Use the arrow keys or swipe anywhere on the board to steer.</p>
       </section>
     </main>
   );
