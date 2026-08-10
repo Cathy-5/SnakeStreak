@@ -1,18 +1,13 @@
-import "../App.css"
+import '../App.css'
 
-export default function Food({food}) {
+export default function Food({ food }) {
+  const [x, y] = food.position;
 
-    const egg = food.map(([x, y], index) => (
+  return (
     <div
-        className="food"
-            key={(`${x}-${y}-${index}`)}
-            style={{
-            gridColumn: x + 1,
-            gridRow: y + 1,
-        }}
+      className={`food food-${food.color}`}
+      style={{ gridColumn: x + 1, gridRow: y + 1 }}
+      aria-label={`${food.color} egg`}
     />
-    ));
-
-    return egg;
-
+  );
 }
