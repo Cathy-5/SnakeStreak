@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react'
 const STARTING_SEGMENTS = [[5, 5], [4, 5], [3, 5]];
 
 function App() {
-  // The first segment is the head; each pair is [column, row].
+  // The first segment is the head, each pair is [column, row].
   const [segments, setSegments] = useState(STARTING_SEGMENTS);
   const [food, setFood] = useState(() => createFood(STARTING_SEGMENTS));
   const [direction, setDirection] = useState('RIGHT');
@@ -15,7 +15,7 @@ function App() {
   const [streakColor, setStreakColor] = useState(null);
   const [sameColorCount, setSameColorCount] = useState(0);
 
-  // Keyboard input changes direction; the timer below moves the snake.
+  // Keyboard input changes direction, the timer below moves the snake.
   useEffect(() => {
     const handleKeyDown = (event) => {
       const nextDirections = {
