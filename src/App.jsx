@@ -781,19 +781,6 @@ function App() {
             </span>
             <span><small>Size</small><strong>{segments.length}</strong></span>
           </div>
-          <button
-            type="button"
-            className={`sound-toggle ${soundEnabled ? 'active' : ''}`}
-            aria-label={soundEnabled ? 'Mute sound effects' : 'Enable sound effects'}
-            aria-pressed={soundEnabled}
-            onClick={toggleSound}
-          >
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path className="speaker-shape" d="M4 9h4l5-4v14l-5-4H4z" />
-              <path className="sound-wave" d="M16 8c1.7 2 1.7 6 0 8M19 5c3.7 4 3.7 10 0 14" />
-              <path className="sound-slash" d="M4 4l16 16" />
-            </svg>
-          </button>
         </header>
 
         <div className="difficulty-panel">
@@ -812,17 +799,32 @@ function App() {
               </button>
             ))}
           </div>
-          <button
-            type="button"
-            className={`records-toggle ${showRecords ? 'active' : ''}`}
-            aria-expanded={showRecords}
-            onClick={() => {
-              setShowRecords((currentValue) => !currentValue);
-              setClearRecordsArmed(false);
-            }}
-          >
-            Records
-          </button>
+          <div className="utility-actions">
+            <button
+              type="button"
+              className={`records-toggle ${showRecords ? 'active' : ''}`}
+              aria-expanded={showRecords}
+              onClick={() => {
+                setShowRecords((currentValue) => !currentValue);
+                setClearRecordsArmed(false);
+              }}
+            >
+              Records
+            </button>
+            <button
+              type="button"
+              className={`sound-toggle ${soundEnabled ? 'active' : ''}`}
+              aria-label={soundEnabled ? 'Mute sound effects' : 'Enable sound effects'}
+              aria-pressed={soundEnabled}
+              onClick={toggleSound}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path className="speaker-shape" d="M4 9h4l5-4v14l-5-4H4z" />
+                <path className="sound-wave" d="M16 8c1.7 2 1.7 6 0 8M19 5c3.7 4 3.7 10 0 14" />
+                <path className="sound-slash" d="M4 4l16 16" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         {showRecords && (
@@ -865,6 +867,8 @@ function App() {
             relocatingHazardPosition={hazardRelocation?.position ?? null}
             hazardLifetime={HAZARD_PAIR_LIFETIME_MS}
           />
+
+          <MobileControls onDirectionChange={handleDirectionInput} />
 
           {feedback && <div className={`game-feedback ${feedback.type}`}>{feedback.text}</div>}
 
@@ -926,8 +930,6 @@ function App() {
             </div>
           )}
         </div>
-
-        <MobileControls onDirectionChange={handleDirectionInput} />
 
         <p className="sr-only">Use the arrow keys, swipe the board, or use the direction buttons to steer.</p>
       </section>
