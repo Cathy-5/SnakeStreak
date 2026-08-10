@@ -849,6 +849,11 @@ function App() {
           <strong>{sameColorCount}/3</strong>
         </div>
 
+        <p className="swipe-hint" role="status">
+          <span className="swipe-hint-icon" aria-hidden="true">↕ ↔</span>
+          <span>Swipe anywhere on the board to move</span>
+        </p>
+
         <div className="board-frame">
           <GameBoard
             key={gameId}

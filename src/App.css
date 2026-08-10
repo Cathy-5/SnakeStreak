@@ -20,6 +20,7 @@
 
 .game-shell {
   width: min(660px, calc(100vw - 24px));
+  box-sizing: border-box;
   position: relative;
   padding: 14px 18px 18px;
   border: 1px solid rgba(200, 231, 211, .14);
@@ -386,6 +387,36 @@
   background: rgba(255, 255, 255, .05);
   font-size: 13px;
   font-weight: 800;
+}
+
+.swipe-hint {
+  width: var(--board-size);
+  margin: 0 auto 9px;
+  padding: 8px 12px;
+  box-sizing: border-box;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid rgba(255, 149, 24, .42);
+  border-radius: 999px;
+  color: #fff2d6;
+  background: linear-gradient(90deg, rgba(255, 149, 24, .18), rgba(255, 149, 24, .08));
+  box-shadow: 0 0 0 rgba(255, 149, 24, 0);
+  font-size: 11px;
+  font-weight: 800;
+  text-align: center;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  animation: swipe-hint-pop 1.8s ease-in-out infinite;
+}
+
+.swipe-hint-icon {
+  color: var(--orange);
+  font-size: 17px;
+  font-weight: 900;
+  letter-spacing: -.12em;
+  line-height: 1;
 }
 
 .streak-label {
@@ -1302,6 +1333,17 @@ button:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
   from { opacity: 0; transform: translateY(-8px) scale(.98); }
 }
 
+@keyframes swipe-hint-pop {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 rgba(255, 149, 24, 0);
+  }
+  45% {
+    transform: scale(1.025);
+    box-shadow: 0 0 18px rgba(255, 149, 24, .2);
+  }
+}
+
 @keyframes wow-segment-in {
   from { opacity: 0; transform: scale(.25) rotate(-18deg); }
 }
@@ -1463,12 +1505,13 @@ button:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
 
 @media (pointer: coarse) {
   .mobile-controls { display: grid; }
+  .swipe-hint { display: flex; }
 }
 
 @media (max-width: 620px) {
   :root {
     --board-size: min(
-      calc(100vw - 16px - env(safe-area-inset-left) - env(safe-area-inset-right)),
+      calc(100vw - 40px - env(safe-area-inset-left) - env(safe-area-inset-right)),
       max(280px, calc(100dvh - 250px)),
       560px
     );
@@ -1482,13 +1525,22 @@ button:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
       max(4px, env(safe-area-inset-left));
   }
   .game-shell { padding: 12px 8px 10px; border-radius: 22px; }
-  .game-header { gap: 6px; }
+  .game-header {
+    width: 100%;
+    display: grid;
+    gap: 8px;
+  }
   .brand { gap: 5px; }
   .brand h1 { font-size: 22px; }
   .brand-mark { width: 31px; height: 24px; }
   .brand-mark i { width: 13px; height: 13px; border-width: 3px; }
-  .scoreboard { gap: 4px; }
-  .scoreboard > span { min-width: 39px; padding: 5px; grid-template-columns: 1fr; gap: 0; }
+  .scoreboard {
+    width: 100%;
+    display: grid;
+    gap: 4px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .scoreboard > span { min-width: 0; padding: 5px; grid-template-columns: 1fr; gap: 0; }
   .scoreboard small { font-size: 7px; }
   .scoreboard strong { font-size: 15px; }
   .sound-toggle { min-width: 34px; padding: 5px 3px; }
@@ -1616,6 +1668,8 @@ button:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
   }
 
   .purple-warning { animation: none; }
+
+  .swipe-hint { animation: none; }
 
   .food-hazard,
   .food-gold,
