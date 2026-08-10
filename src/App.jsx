@@ -13,6 +13,16 @@ function App() {
   const [direction, setDirection] = useState('RIGHT');
   const [gameOver, setGameOver] = useState(false);
 
+  const resetGame = () => {
+    setSegments([
+      [5, 5],
+      [4, 5],
+      [3, 5],
+    ]);
+    setDirection('RIGHT');
+    setGameOver(false);
+  };
+
   // Keyboard input changes directionm the timer below moves the snake.
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -49,7 +59,8 @@ function App() {
 
   // Move one grid cell at a fixed interval and remove the old tail.
   useEffect(() => {
-    if (gameOver) return;
+    if (gameOver) 
+      return;
     const timer = setInterval(() => {
       setSegments((prevSegments) => {
         const head = prevSegments[0];
@@ -80,7 +91,10 @@ function App() {
       <div>
         <GameBoard segments={segments} food={food} />
         {gameOver ? (
-          <h2>gameOver</h2>
+          <>
+          <h2>GAME OVER</h2>
+          <button onClick={resetGame}>Restart</button>
+          </> 
         ) : (
           <>
             <h2>Use the arrow keys to steer</h2>
