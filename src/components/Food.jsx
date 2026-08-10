@@ -14,7 +14,12 @@ export default function Food({ foods }) {
           food.isGolden ? 'limited-time golden wildcard egg' :
           `${food.color} egg${food.isTarget ? ', streak target' : ''}`
         }
-      />
+      >
+        <span className="egg-shine" aria-hidden="true" />
+        <span className="egg-spot spot-one" aria-hidden="true" />
+        <span className="egg-spot spot-two" aria-hidden="true" />
+        <span className="egg-spot spot-three" aria-hidden="true" />
+      </div>
     );
   });
 }

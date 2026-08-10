@@ -1,5 +1,5 @@
 export const BOARD_SIZE = 20;
-export const FOOD_COLORS = ['red', 'pink', 'blue'];
+export const FOOD_COLORS = ['brown', 'pink', 'blue'];
 
 const REVERSE_DIRECTIONS = {
   RIGHT: 'LEFT',
@@ -30,7 +30,7 @@ export function samePosition(first, second) {
   return first[0] === second[0] && first[1] === second[1];
 }
 
-function getNextHead([x, y], direction) {
+export function getNextHead([x, y], direction) {
   if (direction === 'RIGHT') return [x + 1, y];
   if (direction === 'LEFT') return [x - 1, y];
   if (direction === 'UP') return [x, y - 1];

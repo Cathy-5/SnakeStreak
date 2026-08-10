@@ -10,20 +10,37 @@ export default function GameBoard({
   swallowEffect,
   tailEffect,
   confused,
+  mouthOpen,
+  crashEffect,
+  moveInterval,
 }) {
   return (
-    <div>
-      <h2>Game board</h2>
-      <div className={`gameboard ${rewardColor ? `reward-board reward-${rewardColor}` : ''}`}>
-        <Snake
-          segments={segments}
-          rewardColor={rewardColor}
-          swallowEffect={swallowEffect}
-          confused={confused}
-        />
-        <Food foods={foods} />
-        {tailEffect && <TailDissolve effect={tailEffect} />}
-      </div>
+    <div
+      className={`gameboard ${rewardColor ? `reward-board reward-${rewardColor}` : ''} ${crashEffect ? `board-crash crash-${crashEffect.direction.toLowerCase()}` : ''}`}
+      style={{ '--move-duration': `${moveInterval}ms` }}
+    >
+      <Snake
+        segments={segments}
+        rewardColor={rewardColor}
+        swallowEffect={swallowEffect}
+        confused={confused}
+        mouthOpen={mouthOpen}
+        crashEffect={crashEffect}
+      />
+      <Food foods={foods} />
+      {tailEffect && <TailDissolve effect={tailEffect} />}
+      {crashEffect && (
+        <span
+          className={`smash-effect smash-${crashEffect.direction.toLowerCase()}`}
+          style={{
+            left: `${(crashEffect.position[0] + 0.5) * 5}%`,
+            top: `${(crashEffect.position[1] + 0.5) * 5}%`,
+          }}
+          aria-hidden="true"
+        >
+          <i /><i /><i /><i /><i />
+        </span>
+      )}
     </div>
   )
 }
