@@ -3,7 +3,14 @@ import Food from './Food'
 import Snake from './Snake'
 import TailDissolve from './TailDissolve'
 
-export default function GameBoard({ segments, foods, rewardColor, swallowEffect, tailEffect }) {
+export default function GameBoard({
+  segments,
+  foods,
+  rewardColor,
+  swallowEffect,
+  tailEffect,
+  confused,
+}) {
   return (
     <div>
       <h2>Game board</h2>
@@ -12,6 +19,7 @@ export default function GameBoard({ segments, foods, rewardColor, swallowEffect,
           segments={segments}
           rewardColor={rewardColor}
           swallowEffect={swallowEffect}
+          confused={confused}
         />
         <Food foods={foods} />
         {tailEffect && <TailDissolve effect={tailEffect} />}

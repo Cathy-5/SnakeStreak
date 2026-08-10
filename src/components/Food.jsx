@@ -7,9 +7,11 @@ export default function Food({ foods }) {
     return (
       <div
         key={`${food.color}-${x}-${y}`}
-        className={`food food-${food.color} ${food.isTarget ? 'food-target' : ''}`}
+        className={`food food-${food.color} ${food.isTarget ? 'food-target' : ''} ${food.isHazard ? 'food-hazard' : ''}`}
         style={{ gridColumn: x + 1, gridRow: y + 1 }}
-        aria-label={`${food.color} egg${food.isTarget ? ', streak target' : ''}`}
+        aria-label={food.isHazard
+          ? 'purple confusion egg'
+          : `${food.color} egg${food.isTarget ? ', streak target' : ''}`}
       />
     );
   });

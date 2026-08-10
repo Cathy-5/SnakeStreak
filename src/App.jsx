@@ -1,6 +1,6 @@
 import './App.css'
 import GameBoard from './components/GameBoard'
-import { createFoodPair, queueDirection, samePosition } from './game/gameUtils'
+import { createFoodPair, invertDirection, queueDirection, samePosition } from './game/gameUtils'
 import { useEffect, useRef, useState } from 'react'
 
 const STARTING_SEGMENTS = [[5, 5], [4, 5], [3, 5]];
@@ -10,6 +10,7 @@ const KEY_DIRECTIONS = {
   ArrowUp: 'UP',
   ArrowDown: 'DOWN',
 };
+const CONFUSION_DURATION_MS = 10_000;
 
 function App() {
   // The first segment is the head; each pair is [column, row].
@@ -24,10 +25,13 @@ function App() {
   const [rewardColor, setRewardColor] = useState(null);
   const [swallowEffect, setSwallowEffect] = useState(null);
   const [tailEffect, setTailEffect] = useState(null);
+  const [confusionSeconds, setConfusionSeconds] = useState(0);
+  const [confusionEndsAt, setConfusionEndsAt] = useState(null);
   const currentDirectionRef = useRef('RIGHT');
   const directionQueueRef = useRef([]);
   const gameOverRef = useRef(false);
   const effectIdRef = useRef(0);
+  const confusionEndsAtRef = useRef(0);
 
   // Remove collection feedback after a short moment.
   useEffect(() => {
@@ -55,15 +59,42 @@ function App() {
     return () => clearTimeout(timeout);
   }, [tailEffect]);
 
+  // Use elapsed time so confusion is independent of snake movement.
+  useEffect(() => {
+    if (!confusionEndsAt) return undefined;
+
+    const updateCountdown = () => {
+      const remainingSeconds = Math.max(
+        0,
+        Math.ceil((confusionEndsAt - Date.now()) / 1000),
+      );
+      setConfusionSeconds(remainingSeconds);
+
+      if (remainingSeconds === 0) {
+        confusionEndsAtRef.current = 0;
+        setConfusionEndsAt(null);
+        setFeedback({ type: 'restored', text: 'CONTROLS RESTORED' });
+      }
+    };
+
+    updateCountdown();
+    const timer = setInterval(updateCountdown, 250);
+    return () => clearInterval(timer);
+  }, [confusionEndsAt]);
+
   // Keyboard input changes direction; the timer below moves the snake.
   useEffect(() => {
     const handleKeyDown = (event) => {
-      const nextDirection = KEY_DIRECTIONS[event.key];
+      const requestedDirection = KEY_DIRECTIONS[event.key];
 
-      if (!nextDirection) return;
+      if (!requestedDirection) return;
 
       event.preventDefault();
       if (event.repeat || gameOverRef.current) return;
+
+      const nextDirection = Date.now() < confusionEndsAtRef.current
+        ? invertDirection(requestedDirection)
+        : requestedDirection;
 
       // Queue at most two valid turns and consume one on each game tick.
       directionQueueRef.current = queueDirection(
@@ -106,6 +137,9 @@ function App() {
         if (outsideBoard || hitBody) {
           gameOverRef.current = true;
           directionQueueRef.current = [];
+          confusionEndsAtRef.current = 0;
+          setConfusionEndsAt(null);
+          setConfusionSeconds(0);
           setGameOver(true);
           return previousSegments;
         }
@@ -116,6 +150,22 @@ function App() {
           const effectId = effectIdRef.current + 1;
           effectIdRef.current = effectId;
           setSwallowEffect({ id: effectId, color: eatenFood.color });
+
+          if (eatenFood.isHazard) {
+            // Clear old turns so only new key presses use reversed controls.
+            directionQueueRef.current = [];
+            const confusionEnd = Date.now() + CONFUSION_DURATION_MS;
+            confusionEndsAtRef.current = confusionEnd;
+            setConfusionEndsAt(confusionEnd);
+            setConfusionSeconds(CONFUSION_DURATION_MS / 1000);
+            setFeedback({
+              type: 'confusion',
+              text: 'CONTROLS REVERSED · 10 SECONDS',
+            });
+            setFoods((currentFoods) => currentFoods.filter((food) => !food.isHazard));
+            return [newHead, ...previousSegments.slice(0, -1)];
+          }
+
           const nextCount = eatenFood.color === streakColor ? sameColorCount + 1 : 1;
           setScore((currentScore) => currentScore + 1);
 
@@ -158,6 +208,7 @@ function App() {
     currentDirectionRef.current = 'RIGHT';
     directionQueueRef.current = [];
     gameOverRef.current = false;
+    confusionEndsAtRef.current = 0;
     setSegments(STARTING_SEGMENTS);
     setFoods(createFoodPair(STARTING_SEGMENTS, 'RIGHT'));
     setDirection('RIGHT');
@@ -169,6 +220,8 @@ function App() {
     setRewardColor(null);
     setSwallowEffect(null);
     setTailEffect(null);
+    setConfusionSeconds(0);
+    setConfusionEndsAt(null);
   };
 
   return (
@@ -194,8 +247,15 @@ function App() {
         rewardColor={rewardColor}
         swallowEffect={swallowEffect}
         tailEffect={tailEffect}
+        confused={confusionSeconds > 0}
       />
       {feedback && <div className={`game-feedback ${feedback.type}`}>{feedback.text}</div>}
+      {confusionSeconds > 0 && (
+        <div className="confusion-status" role="status">
+          <span>CONTROLS REVERSED <strong>{confusionSeconds}s</strong></span>
+          <small>Press the opposite arrow to move where you want.</small>
+        </div>
+      )}
       {gameOver ? (
         <>
           <h2>GAME OVER</h2>

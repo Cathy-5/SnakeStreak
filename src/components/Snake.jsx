@@ -1,6 +1,6 @@
 import '../App.css'
 
-export default function Snake({ segments, rewardColor, swallowEffect }) {
+export default function Snake({ segments, rewardColor, swallowEffect, confused }) {
   const swallowIndex = Math.min(1, segments.length - 1);
 
   return segments.map(([x, y], index) => {
@@ -8,7 +8,7 @@ export default function Snake({ segments, rewardColor, swallowEffect }) {
 
     return (
       <div
-        className={`snake ${rewardColor ? `snake-reward reward-${rewardColor}` : ''} ${isSwallowSegment ? `snake-swallow reward-${swallowEffect.color}` : ''}`}
+        className={`snake ${rewardColor ? `snake-reward reward-${rewardColor}` : ''} ${isSwallowSegment ? `snake-swallow reward-${swallowEffect.color}` : ''} ${confused ? 'snake-confused' : ''} ${confused && index === 0 ? 'snake-confused-head' : ''}`}
         key={isSwallowSegment ? `swallow-${swallowEffect.id}-${index}` : `segment-${index}`}
         style={{
           gridColumn: x + 1,

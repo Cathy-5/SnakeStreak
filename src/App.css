@@ -66,9 +66,27 @@
   animation: swallow-bump .28s ease-out both;
 }
 
+.snake-confused {
+  background: #8f5ac7;
+  outline: 2px solid #6d399f;
+  box-shadow: 0 0 8px #8f5ac7;
+}
+
+.snake-confused-head::after {
+  content: "?";
+  position: absolute;
+  left: 50%;
+  bottom: 70%;
+  color: #6d399f;
+  font-size: 18px;
+  font-weight: 900;
+  animation: confusion-mark .7s ease-in-out infinite alternate;
+}
+
 .reward-yellow { --reward-color: #f4c542; }
 .reward-pink { --reward-color: #ed8ca1; }
 .reward-blue { --reward-color: #78a9df; }
+.reward-purple { --reward-color: #8f5ac7; }
 
 .food {
   width: 100%;
@@ -84,9 +102,15 @@
 .food-yellow { box-shadow: inset 0 0 0 8px #f4c542; }
 .food-pink { box-shadow: inset 0 0 0 8px #ed8ca1; }
 .food-blue { box-shadow: inset 0 0 0 8px #78a9df; }
+.food-purple { box-shadow: inset 0 0 0 8px #8f5ac7, 0 0 9px #8f5ac7; }
 
 .food-target {
   animation: target-pulse 1s ease-in-out infinite;
+}
+
+.food-hazard {
+  border-color: #542879;
+  animation: hazard-wobble .7s ease-in-out infinite alternate;
 }
 
 .game-feedback {
@@ -101,7 +125,42 @@
 }
 
 .game-feedback.shrink { background: #e06b2d; }
+.game-feedback.confusion { background: #6d399f; }
+.game-feedback.restored { background: #3f7656; }
 .reward-board { animation: reward-board .8s ease; }
+
+.confusion-status {
+  width: max-content;
+  margin: 10px auto 0;
+  padding: 8px 14px;
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  border: 2px solid #8f5ac7;
+  border-radius: 999px;
+  color: #542879;
+  background: #f2e9fb;
+  font-weight: 800;
+  letter-spacing: .04em;
+}
+
+.confusion-status small {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.confusion-status strong {
+  display: inline-grid;
+  min-width: 30px;
+  height: 24px;
+  padding: 0 4px;
+  margin-left: 7px;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  background: #6d399f;
+}
 
 .tail-dissolve {
   width: 100%;
@@ -164,6 +223,16 @@ button {
 
 @keyframes target-pulse {
   50% { transform: scale(.88); filter: brightness(1.15); }
+}
+
+@keyframes hazard-wobble {
+  from { transform: scale(.72) rotate(-7deg); }
+  to { transform: scale(.82) rotate(7deg); }
+}
+
+@keyframes confusion-mark {
+  from { transform: translate(-50%, 0) rotate(-8deg); }
+  to { transform: translate(-50%, -5px) rotate(8deg); }
 }
 
 @keyframes streak-reward {
@@ -236,8 +305,13 @@ button {
   }
 
   .tail-particle,
-  .tail-minus {
+  .tail-minus,
+  .snake-confused-head::after {
     display: none;
+  }
+
+  .food-hazard {
+    animation: none;
   }
 }
 

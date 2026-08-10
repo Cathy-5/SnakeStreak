@@ -8,6 +8,10 @@ const REVERSE_DIRECTIONS = {
   DOWN: 'UP',
 };
 
+export function invertDirection(direction) {
+  return REVERSE_DIRECTIONS[direction];
+}
+
 export function queueDirection(queue, currentDirection, nextDirection) {
   if (queue.length >= 2) return queue;
 
@@ -77,6 +81,33 @@ function randomDifferentColor(color) {
   return choices[Math.floor(Math.random() * choices.length)];
 }
 
+function createConfusionFood(snake, targetFood, occupiedFoods, avoidPosition) {
+  const [targetX, targetY] = targetFood.position;
+  const blocked = [...snake, ...occupiedFoods.map((food) => food.position), avoidPosition];
+  const nearbyPositions = [
+    [targetX - 1, targetY],
+    [targetX + 1, targetY],
+    [targetX, targetY - 1],
+    [targetX, targetY + 1],
+    [targetX - 1, targetY - 1],
+    [targetX + 1, targetY - 1],
+    [targetX - 1, targetY + 1],
+    [targetX + 1, targetY + 1],
+  ];
+  const candidates = nearbyPositions.filter(([x, y]) => {
+    const insideBoard = x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE;
+    return insideBoard && !blocked.some((position) => samePosition(position, [x, y]));
+  });
+
+  if (candidates.length === 0) return null;
+
+  return {
+    position: candidates[Math.floor(Math.random() * candidates.length)],
+    color: 'purple',
+    isHazard: true,
+  };
+}
+
 export function createFoodPair(snake, direction, streakColor = null, streakCount = 0) {
   const avoidPosition = getNextHead(snake[0], direction);
 
@@ -113,6 +144,17 @@ export function createFoodPair(snake, direction, streakColor = null, streakCount
     occupiedFoods: [targetFood],
     avoidPosition,
   });
+
+  if (streakCount >= 2) {
+    const confusionFood = createConfusionFood(
+      snake,
+      targetFood,
+      [targetFood, alternativeFood],
+      avoidPosition,
+    );
+
+    if (confusionFood) return [targetFood, alternativeFood, confusionFood];
+  }
 
   return [targetFood, alternativeFood];
 }
