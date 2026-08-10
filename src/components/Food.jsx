@@ -9,9 +9,11 @@ export default function Food({ foods }) {
         key={`${food.color}-${x}-${y}`}
         className={`food food-${food.color} ${food.isTarget ? 'food-target' : ''} ${food.isHazard ? 'food-hazard' : ''}`}
         style={{ gridColumn: x + 1, gridRow: y + 1 }}
-        aria-label={food.isHazard
-          ? 'purple confusion egg'
-          : `${food.color} egg${food.isTarget ? ', streak target' : ''}`}
+        aria-label={
+          food.isHazard ? 'purple confusion egg' :
+          food.isGolden ? 'limited-time golden wildcard egg' :
+          `${food.color} egg${food.isTarget ? ', streak target' : ''}`
+        }
       />
     );
   });

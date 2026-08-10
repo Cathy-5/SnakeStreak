@@ -1,6 +1,12 @@
 import './App.css'
 import GameBoard from './components/GameBoard'
-import { createFoodPair, invertDirection, queueDirection, samePosition } from './game/gameUtils'
+import {
+  createFoodPair,
+  createGoldenFood,
+  invertDirection,
+  queueDirection,
+  samePosition,
+} from './game/gameUtils'
 import { useEffect, useRef, useState } from 'react'
 
 const STARTING_SEGMENTS = [[5, 5], [4, 5], [3, 5]];
@@ -11,6 +17,8 @@ const KEY_DIRECTIONS = {
   ArrowDown: 'DOWN',
 };
 const CONFUSION_DURATION_MS = 10_000;
+const randomGoldenThreshold = () => 8 + Math.floor(Math.random() * 5);
+const randomGoldenDuration = () => 5 + Math.floor(Math.random() * 3);
 
 function App() {
   // The first segment is the head; each pair is [column, row].
@@ -27,11 +35,17 @@ function App() {
   const [tailEffect, setTailEffect] = useState(null);
   const [confusionSeconds, setConfusionSeconds] = useState(0);
   const [confusionEndsAt, setConfusionEndsAt] = useState(null);
+  const [goldenSeconds, setGoldenSeconds] = useState(0);
+  const [goldenEndsAt, setGoldenEndsAt] = useState(null);
+  const [goldenCharge, setGoldenCharge] = useState(false);
   const currentDirectionRef = useRef('RIGHT');
   const directionQueueRef = useRef([]);
   const gameOverRef = useRef(false);
   const effectIdRef = useRef(0);
   const confusionEndsAtRef = useRef(0);
+  const goldenEndsAtRef = useRef(0);
+  const ordinaryEggsCollectedRef = useRef(0);
+  const goldenThresholdRef = useRef(randomGoldenThreshold());
 
   // Remove collection feedback after a short moment.
   useEffect(() => {
@@ -82,6 +96,25 @@ function App() {
     return () => clearInterval(timer);
   }, [confusionEndsAt]);
 
+  useEffect(() => {
+    if (!goldenEndsAt) return undefined;
+
+    const updateCountdown = () => {
+      const remainingSeconds = Math.max(0, Math.ceil((goldenEndsAt - Date.now()) / 1000));
+      setGoldenSeconds(remainingSeconds);
+
+      if (remainingSeconds === 0) {
+        goldenEndsAtRef.current = 0;
+        setGoldenEndsAt(null);
+        setFoods((currentFoods) => currentFoods.filter((food) => !food.isGolden));
+      }
+    };
+
+    updateCountdown();
+    const timer = setInterval(updateCountdown, 250);
+    return () => clearInterval(timer);
+  }, [goldenEndsAt]);
+
   // Keyboard input changes direction; the timer below moves the snake.
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -118,6 +151,48 @@ function App() {
       currentDirectionRef.current = movementDirection;
       setDirection(movementDirection);
 
+      const placeNextFoods = (
+        nextSnake,
+        nextStreakColor = null,
+        nextStreakCount = 0,
+        preserveGolden = true,
+      ) => {
+        const activeGolden = preserveGolden && Date.now() < goldenEndsAtRef.current
+          ? foods.find((food) => food.isGolden)
+          : null;
+        const occupiedFoods = activeGolden ? [activeGolden] : [];
+        const nextFoods = createFoodPair(
+          nextSnake,
+          movementDirection,
+          nextStreakColor,
+          nextStreakCount,
+          { occupiedFoods, includeHazard: !activeGolden },
+        );
+
+        if (activeGolden) {
+          setFoods([...nextFoods, activeGolden]);
+          return;
+        }
+
+        const goldenReady = ordinaryEggsCollectedRef.current >= goldenThresholdRef.current;
+        const hasConfusionEgg = nextFoods.some((food) => food.isHazard);
+
+        if (goldenReady && !hasConfusionEgg && !goldenCharge) {
+          const goldenFood = createGoldenFood(nextSnake, movementDirection, nextFoods);
+          const durationSeconds = randomGoldenDuration();
+          const expirationTime = Date.now() + durationSeconds * 1000;
+          ordinaryEggsCollectedRef.current = 0;
+          goldenThresholdRef.current = randomGoldenThreshold();
+          goldenEndsAtRef.current = expirationTime;
+          setGoldenEndsAt(expirationTime);
+          setGoldenSeconds(durationSeconds);
+          setFoods([...nextFoods, goldenFood]);
+          return;
+        }
+
+        setFoods(nextFoods);
+      };
+
       setSegments((previousSegments) => {
         const head = previousSegments[0];
         let newHead;
@@ -138,8 +213,12 @@ function App() {
           gameOverRef.current = true;
           directionQueueRef.current = [];
           confusionEndsAtRef.current = 0;
+          goldenEndsAtRef.current = 0;
           setConfusionEndsAt(null);
           setConfusionSeconds(0);
+          setGoldenEndsAt(null);
+          setGoldenSeconds(0);
+          setGoldenCharge(false);
           setGameOver(true);
           return previousSegments;
         }
@@ -150,6 +229,48 @@ function App() {
           const effectId = effectIdRef.current + 1;
           effectIdRef.current = effectId;
           setSwallowEffect({ id: effectId, color: eatenFood.color });
+
+          if (eatenFood.isGolden) {
+            goldenEndsAtRef.current = 0;
+            setGoldenEndsAt(null);
+            setGoldenSeconds(0);
+            setScore((currentScore) => currentScore + 3);
+
+            if (!streakColor) {
+              setGoldenCharge(true);
+              setFeedback({
+                type: 'golden',
+                text: 'GOLDEN CHARGE · NEXT EGG COUNTS TWICE',
+              });
+              setFoods((currentFoods) => currentFoods.filter((food) => !food.isGolden));
+              return [newHead, ...previousSegments.slice(0, -1)];
+            }
+
+            const wildcardCount = sameColorCount + 1;
+            if (wildcardCount >= 3) {
+              setStreakColor(null);
+              setSameColorCount(0);
+              const shorterSnake = [newHead, ...previousSegments.slice(0, -2)];
+              const safeSnake = shorterSnake.length > 0 ? shorterSnake : [newHead];
+              const removedTail = previousSegments.at(-2);
+              if (removedTail) {
+                setTailEffect({ id: effectId, color: streakColor, position: removedTail });
+              }
+              setRewardColor(streakColor);
+              setFeedback({ type: 'shrink', text: 'GOLDEN STREAK COMPLETE · −1 SEGMENT' });
+              placeNextFoods(safeSnake, null, 0, false);
+              return safeSnake;
+            }
+
+            setSameColorCount(wildcardCount);
+            setFeedback({
+              type: 'golden',
+              text: `GOLD WILDCARD · ${streakColor.toUpperCase()} ${wildcardCount}/3`,
+            });
+            const movingSnake = [newHead, ...previousSegments.slice(0, -1)];
+            placeNextFoods(movingSnake, streakColor, wildcardCount, false);
+            return movingSnake;
+          }
 
           if (eatenFood.isHazard) {
             // Clear old turns so only new key presses use reversed controls.
@@ -166,10 +287,15 @@ function App() {
             return [newHead, ...previousSegments.slice(0, -1)];
           }
 
-          const nextCount = eatenFood.color === streakColor ? sameColorCount + 1 : 1;
+          ordinaryEggsCollectedRef.current += 1;
+          const countIncrease = goldenCharge ? 2 : 1;
+          const nextCount = eatenFood.color === streakColor
+            ? sameColorCount + countIncrease
+            : countIncrease;
+          if (goldenCharge) setGoldenCharge(false);
           setScore((currentScore) => currentScore + 1);
 
-          if (nextCount === 3) {
+          if (nextCount >= 3) {
             setStreakColor(null);
             setSameColorCount(0);
             // The third matching egg removes one segment instead of growing.
@@ -182,7 +308,7 @@ function App() {
             }
             setRewardColor(eatenFood.color);
             setFeedback({ type: 'shrink', text: 'STREAK COMPLETE · −1 SEGMENT' });
-            setFoods(createFoodPair(safeSnake, movementDirection));
+            placeNextFoods(safeSnake);
             return safeSnake;
           }
 
@@ -193,7 +319,7 @@ function App() {
             type: 'collect',
             text: `${eatenFood.color.toUpperCase()} STREAK · ${nextCount}/3`,
           });
-          setFoods(createFoodPair(longerSnake, movementDirection, eatenFood.color, nextCount));
+          placeNextFoods(longerSnake, eatenFood.color, nextCount);
           return longerSnake;
         }
 
@@ -202,13 +328,16 @@ function App() {
     }, 250);
 
     return () => clearInterval(timer);
-  }, [foods, gameOver, sameColorCount, streakColor]);
+  }, [foods, gameOver, goldenCharge, sameColorCount, streakColor]);
 
   const resetGame = () => {
     currentDirectionRef.current = 'RIGHT';
     directionQueueRef.current = [];
     gameOverRef.current = false;
     confusionEndsAtRef.current = 0;
+    goldenEndsAtRef.current = 0;
+    ordinaryEggsCollectedRef.current = 0;
+    goldenThresholdRef.current = randomGoldenThreshold();
     setSegments(STARTING_SEGMENTS);
     setFoods(createFoodPair(STARTING_SEGMENTS, 'RIGHT'));
     setDirection('RIGHT');
@@ -222,6 +351,9 @@ function App() {
     setTailEffect(null);
     setConfusionSeconds(0);
     setConfusionEndsAt(null);
+    setGoldenSeconds(0);
+    setGoldenEndsAt(null);
+    setGoldenCharge(false);
   };
 
   return (
@@ -254,6 +386,16 @@ function App() {
         <div className="confusion-status" role="status">
           <span>CONTROLS REVERSED <strong>{confusionSeconds}s</strong></span>
           <small>Press the opposite arrow to move where you want.</small>
+        </div>
+      )}
+      {goldenSeconds > 0 && (
+        <div className="golden-status" role="status">
+          GOLDEN EGG <strong>{goldenSeconds}s</strong>
+        </div>
+      )}
+      {goldenCharge && (
+        <div className="golden-status golden-charge" role="status">
+          GOLDEN CHARGE <small>Next colored egg counts twice.</small>
         </div>
       )}
       {gameOver ? (

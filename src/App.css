@@ -44,7 +44,7 @@
 }
 
 .streak-dots i.filled { background: #234a38; }
-.streak-yellow .streak-dots i.filled { background: #f4c542; }
+.streak-red .streak-dots i.filled { background: #df4d3f; }
 .streak-pink .streak-dots i.filled { background: #ed8ca1; }
 .streak-blue .streak-dots i.filled { background: #78a9df; }
 
@@ -83,10 +83,11 @@
   animation: confusion-mark .7s ease-in-out infinite alternate;
 }
 
-.reward-yellow { --reward-color: #f4c542; }
+.reward-red { --reward-color: #df4d3f; }
 .reward-pink { --reward-color: #ed8ca1; }
 .reward-blue { --reward-color: #78a9df; }
 .reward-purple { --reward-color: #8f5ac7; }
+.reward-gold { --reward-color: #f2b705; }
 
 .food {
   width: 100%;
@@ -99,10 +100,16 @@
   z-index: 3;
 }
 
-.food-yellow { box-shadow: inset 0 0 0 8px #f4c542; }
+.food-red { box-shadow: inset 0 0 0 8px #df4d3f; }
 .food-pink { box-shadow: inset 0 0 0 8px #ed8ca1; }
 .food-blue { box-shadow: inset 0 0 0 8px #78a9df; }
 .food-purple { box-shadow: inset 0 0 0 8px #8f5ac7, 0 0 9px #8f5ac7; }
+.food-gold {
+  border-color: #9a6500;
+  background: #fff4b8;
+  box-shadow: inset 0 0 0 8px #f2b705, 0 0 12px #ffd84d;
+  animation: golden-shine .65s ease-in-out infinite alternate;
+}
 
 .food-target {
   animation: target-pulse 1s ease-in-out infinite;
@@ -115,18 +122,21 @@
 
 .game-feedback {
   width: max-content;
+  max-width: calc(100vw - 32px);
   margin: 12px auto 0;
   padding: 8px 14px;
   border-radius: 999px;
   color: #fff8e8;
   background: #234a38;
   font-weight: 700;
+  text-align: center;
   animation: feedback-pop 1.1s ease both;
 }
 
 .game-feedback.shrink { background: #e06b2d; }
 .game-feedback.confusion { background: #6d399f; }
 .game-feedback.restored { background: #3f7656; }
+.game-feedback.golden { color: #3d2a00; background: #f2b705; }
 .reward-board { animation: reward-board .8s ease; }
 
 .confusion-status {
@@ -160,6 +170,33 @@
   border-radius: 50%;
   color: #fff;
   background: #6d399f;
+}
+
+.golden-status {
+  width: max-content;
+  margin: 10px auto 0;
+  padding: 8px 14px;
+  border: 2px solid #b17600;
+  border-radius: 999px;
+  color: #4d3500;
+  background: #fff2a8;
+  font-weight: 900;
+  letter-spacing: .04em;
+}
+
+.golden-status strong {
+  margin-left: 6px;
+}
+
+.golden-charge {
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+}
+
+.golden-charge small {
+  font-weight: 700;
+  letter-spacing: 0;
 }
 
 .tail-dissolve {
@@ -233,6 +270,11 @@ button {
 @keyframes confusion-mark {
   from { transform: translate(-50%, 0) rotate(-8deg); }
   to { transform: translate(-50%, -5px) rotate(8deg); }
+}
+
+@keyframes golden-shine {
+  from { transform: scale(.72) rotate(-4deg); filter: brightness(1); }
+  to { transform: scale(.86) rotate(4deg); filter: brightness(1.18); }
 }
 
 @keyframes streak-reward {
@@ -311,6 +353,10 @@ button {
   }
 
   .food-hazard {
+    animation: none;
+  }
+
+  .food-gold {
     animation: none;
   }
 }
