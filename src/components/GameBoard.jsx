@@ -1,14 +1,20 @@
 import '../App.css'
-import Snake from './Snake'
 import Food from './Food'
+import Snake from './Snake'
+import TailDissolve from './TailDissolve'
 
-export default function GameBoard({ segments, food }) {
+export default function GameBoard({ segments, foods, rewardColor, swallowEffect, tailEffect }) {
   return (
     <div>
       <h2>Game board</h2>
-      <div className="gameboard">
-        <Snake segments={segments} />
-        <Food food={food} />
+      <div className={`gameboard ${rewardColor ? `reward-board reward-${rewardColor}` : ''}`}>
+        <Snake
+          segments={segments}
+          rewardColor={rewardColor}
+          swallowEffect={swallowEffect}
+        />
+        <Food foods={foods} />
+        {tailEffect && <TailDissolve effect={tailEffect} />}
       </div>
     </div>
   )

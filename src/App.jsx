@@ -1,64 +1,100 @@
 import './App.css'
 import GameBoard from './components/GameBoard'
-import { createFood, samePosition } from './game/gameUtils'
-import { useState, useEffect } from 'react'
+import { createFoodPair, queueDirection, samePosition } from './game/gameUtils'
+import { useEffect, useRef, useState } from 'react'
 
 const STARTING_SEGMENTS = [[5, 5], [4, 5], [3, 5]];
+const KEY_DIRECTIONS = {
+  ArrowRight: 'RIGHT',
+  ArrowLeft: 'LEFT',
+  ArrowUp: 'UP',
+  ArrowDown: 'DOWN',
+};
 
 function App() {
-  // The first segment is the head, each pair is [column, row].
+  // The first segment is the head; each pair is [column, row].
   const [segments, setSegments] = useState(STARTING_SEGMENTS);
-  const [food, setFood] = useState(() => createFood(STARTING_SEGMENTS));
+  const [foods, setFoods] = useState(() => createFoodPair(STARTING_SEGMENTS, 'RIGHT'));
   const [direction, setDirection] = useState('RIGHT');
   const [gameOver, setGameOver] = useState(false);
   const [score, setScore] = useState(0);
   const [streakColor, setStreakColor] = useState(null);
   const [sameColorCount, setSameColorCount] = useState(0);
+  const [feedback, setFeedback] = useState(null);
+  const [rewardColor, setRewardColor] = useState(null);
+  const [swallowEffect, setSwallowEffect] = useState(null);
+  const [tailEffect, setTailEffect] = useState(null);
+  const currentDirectionRef = useRef('RIGHT');
+  const directionQueueRef = useRef([]);
+  const gameOverRef = useRef(false);
+  const effectIdRef = useRef(0);
 
-  // Keyboard input changes direction, the timer below moves the snake.
+  // Remove collection feedback after a short moment.
+  useEffect(() => {
+    if (!feedback) return undefined;
+    const timeout = setTimeout(() => setFeedback(null), 1100);
+    return () => clearTimeout(timeout);
+  }, [feedback]);
+
+  // Keep the completion reward visible long enough to read.
+  useEffect(() => {
+    if (!rewardColor) return undefined;
+    const timeout = setTimeout(() => setRewardColor(null), 900);
+    return () => clearTimeout(timeout);
+  }, [rewardColor]);
+
+  useEffect(() => {
+    if (!swallowEffect) return undefined;
+    const timeout = setTimeout(() => setSwallowEffect(null), 300);
+    return () => clearTimeout(timeout);
+  }, [swallowEffect]);
+
+  useEffect(() => {
+    if (!tailEffect) return undefined;
+    const timeout = setTimeout(() => setTailEffect(null), 600);
+    return () => clearTimeout(timeout);
+  }, [tailEffect]);
+
+  // Keyboard input changes direction; the timer below moves the snake.
   useEffect(() => {
     const handleKeyDown = (event) => {
-      const nextDirections = {
-        ArrowRight: 'RIGHT',
-        ArrowLeft: 'LEFT',
-        ArrowUp: 'UP',
-        ArrowDown: 'DOWN',
-      };
-      const nextDirection = nextDirections[event.key];
+      const nextDirection = KEY_DIRECTIONS[event.key];
 
       if (!nextDirection) return;
 
       event.preventDefault();
+      if (event.repeat || gameOverRef.current) return;
 
-      const reverseDirections = {
-        RIGHT: 'LEFT',
-        LEFT: 'RIGHT',
-        UP: 'DOWN',
-        DOWN: 'UP',
-      };
-
-      if (nextDirection !== reverseDirections[direction]) {
-        setDirection(nextDirection);
-      }
+      // Queue at most two valid turns and consume one on each game tick.
+      directionQueueRef.current = queueDirection(
+        directionQueueRef.current,
+        currentDirectionRef.current,
+        nextDirection,
+      );
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [direction]);
+  }, []);
 
-  // Move one grid cell, then handle collisions and food.
+  // Move one grid cell, then handle collisions and eggs.
   useEffect(() => {
     if (gameOver) return undefined;
 
     const timer = setInterval(() => {
+      const queuedDirection = directionQueueRef.current.shift();
+      const movementDirection = queuedDirection ?? currentDirectionRef.current;
+      currentDirectionRef.current = movementDirection;
+      setDirection(movementDirection);
+
       setSegments((previousSegments) => {
         const head = previousSegments[0];
         let newHead;
 
-        if (direction === 'RIGHT') newHead = [head[0] + 1, head[1]];
-        if (direction === 'LEFT') newHead = [head[0] - 1, head[1]];
-        if (direction === 'UP') newHead = [head[0], head[1] - 1];
-        if (direction === 'DOWN') newHead = [head[0], head[1] + 1];
+        if (movementDirection === 'RIGHT') newHead = [head[0] + 1, head[1]];
+        if (movementDirection === 'LEFT') newHead = [head[0] - 1, head[1]];
+        if (movementDirection === 'UP') newHead = [head[0], head[1] - 1];
+        if (movementDirection === 'DOWN') newHead = [head[0], head[1] + 1];
 
         const outsideBoard =
           newHead[0] < 0 || newHead[0] > 19 ||
@@ -68,29 +104,46 @@ function App() {
           .some((segment) => samePosition(segment, newHead));
 
         if (outsideBoard || hitBody) {
+          gameOverRef.current = true;
+          directionQueueRef.current = [];
           setGameOver(true);
           return previousSegments;
         }
 
-        const ateFood = samePosition(newHead, food.position);
+        const eatenFood = foods.find((food) => samePosition(newHead, food.position));
 
-        if (ateFood) {
-          const nextCount = food.color === streakColor ? sameColorCount + 1 : 1;
+        if (eatenFood) {
+          const effectId = effectIdRef.current + 1;
+          effectIdRef.current = effectId;
+          setSwallowEffect({ id: effectId, color: eatenFood.color });
+          const nextCount = eatenFood.color === streakColor ? sameColorCount + 1 : 1;
           setScore((currentScore) => currentScore + 1);
 
           if (nextCount === 3) {
             setStreakColor(null);
             setSameColorCount(0);
-            // The third matching egg removes one segment.
+            // The third matching egg removes one segment instead of growing.
             const shorterSnake = [newHead, ...previousSegments.slice(0, -2)];
-            setFood(createFood(shorterSnake));
-            return shorterSnake.length > 0 ? shorterSnake : [newHead];
+            const safeSnake = shorterSnake.length > 0 ? shorterSnake : [newHead];
+            // This is the extra tail cell lost to shrinking, not normal movement.
+            const removedTail = previousSegments.at(-2);
+            if (removedTail) {
+              setTailEffect({ id: effectId, color: eatenFood.color, position: removedTail });
+            }
+            setRewardColor(eatenFood.color);
+            setFeedback({ type: 'shrink', text: 'STREAK COMPLETE · −1 SEGMENT' });
+            setFoods(createFoodPair(safeSnake, movementDirection));
+            return safeSnake;
           }
 
-          setStreakColor(food.color);
+          setStreakColor(eatenFood.color);
           setSameColorCount(nextCount);
           const longerSnake = [newHead, ...previousSegments];
-          setFood(createFood(longerSnake));
+          setFeedback({
+            type: 'collect',
+            text: `${eatenFood.color.toUpperCase()} STREAK · ${nextCount}/3`,
+          });
+          setFoods(createFoodPair(longerSnake, movementDirection, eatenFood.color, nextCount));
           return longerSnake;
         }
 
@@ -99,38 +152,61 @@ function App() {
     }, 250);
 
     return () => clearInterval(timer);
-  }, [direction, food, gameOver, sameColorCount, streakColor]);
+  }, [foods, gameOver, sameColorCount, streakColor]);
 
   const resetGame = () => {
+    currentDirectionRef.current = 'RIGHT';
+    directionQueueRef.current = [];
+    gameOverRef.current = false;
     setSegments(STARTING_SEGMENTS);
-    setFood(createFood(STARTING_SEGMENTS));
+    setFoods(createFoodPair(STARTING_SEGMENTS, 'RIGHT'));
     setDirection('RIGHT');
     setGameOver(false);
     setScore(0);
     setStreakColor(null);
     setSameColorCount(0);
+    setFeedback(null);
+    setRewardColor(null);
+    setSwallowEffect(null);
+    setTailEffect(null);
   };
 
   return (
     <main>
       <h1>SnakeStreak</h1>
-      <p>Eat eggs, build a color streak, and survive as long as possible.</p>
-      <div>
-        <GameBoard segments={segments} food={food} />
-        {gameOver ? (
-          <>
-            <h2>GAME OVER</h2>
-            <button onClick={resetGame}>Restart</button>
-          </>
-        ) : (
-          <>
-            <h2>Use the arrow keys to steer</h2>
-            <h2>Direction: {direction}</h2>
-            <h2>Score: {score}</h2>
-            <h2>Egg streak: {sameColorCount} {streakColor ?? ''}</h2>
-          </>
-        )}
+      <p>Choose a color, build a three-egg streak, and survive.</p>
+      <div className="game-stats">
+        <span>Score <strong>{score}</strong></span>
+        <span>Length <strong>{segments.length}</strong></span>
+        <span className={`streak-status ${streakColor ? `streak-${streakColor}` : ''}`}>
+          {streakColor ? `${streakColor} streak` : 'Choose a color'}
+          <strong>{sameColorCount}/3</strong>
+          <span className="streak-dots" aria-label={`${sameColorCount} of 3 eggs`}>
+            {[0, 1, 2].map((dot) => (
+              <i key={dot} className={dot < sameColorCount ? 'filled' : ''} />
+            ))}
+          </span>
+        </span>
       </div>
+      <GameBoard
+        segments={segments}
+        foods={foods}
+        rewardColor={rewardColor}
+        swallowEffect={swallowEffect}
+        tailEffect={tailEffect}
+      />
+      {feedback && <div className={`game-feedback ${feedback.type}`}>{feedback.text}</div>}
+      {gameOver ? (
+        <>
+          <h2>GAME OVER</h2>
+          <button onClick={resetGame}>Restart</button>
+        </>
+      ) : (
+        <>
+          <h2>Use the arrow keys to steer</h2>
+          <h2>Direction: {direction}</h2>
+        </>
+      )}
     </main>
   );
 }

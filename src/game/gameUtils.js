@@ -1,21 +1,118 @@
-const FOOD_COLORS = ['yellow', 'pink', 'blue'];
+export const BOARD_SIZE = 20;
+export const FOOD_COLORS = ['yellow', 'pink', 'blue'];
 
-export function createFood(snake) {
-  let position;
+const REVERSE_DIRECTIONS = {
+  RIGHT: 'LEFT',
+  LEFT: 'RIGHT',
+  UP: 'DOWN',
+  DOWN: 'UP',
+};
 
-  do {
-    position = [
-      Math.floor(Math.random() * 20),
-      Math.floor(Math.random() * 20),
-    ];
-  } while (snake.some(([x, y]) => x === position[0] && y === position[1]));
+export function queueDirection(queue, currentDirection, nextDirection) {
+  if (queue.length >= 2) return queue;
 
-  return {
-    position,
-    color: FOOD_COLORS[Math.floor(Math.random() * FOOD_COLORS.length)],
-  };
+  const directionToCompare = queue.at(-1) ?? currentDirection;
+  if (
+    nextDirection === directionToCompare ||
+    nextDirection === REVERSE_DIRECTIONS[directionToCompare]
+  ) {
+    return queue;
+  }
+
+  return [...queue, nextDirection];
 }
 
 export function samePosition(first, second) {
   return first[0] === second[0] && first[1] === second[1];
+}
+
+function getNextHead([x, y], direction) {
+  if (direction === 'RIGHT') return [x + 1, y];
+  if (direction === 'LEFT') return [x - 1, y];
+  if (direction === 'UP') return [x, y - 1];
+  return [x, y + 1];
+}
+
+function positionsForZone(zone) {
+  const positions = [];
+
+  for (let x = 0; x < BOARD_SIZE; x += 1) {
+    for (let y = 0; y < BOARD_SIZE; y += 1) {
+      const distanceFromEdge = Math.min(x, y, BOARD_SIZE - 1 - x, BOARD_SIZE - 1 - y);
+      const isAllowed =
+        zone === 'center' ? distanceFromEdge >= 4 :
+        zone === 'edge-4' ? distanceFromEdge < 4 :
+        zone === 'edge-2' ? distanceFromEdge < 2 : true;
+
+      if (isAllowed) positions.push([x, y]);
+    }
+  }
+
+  return positions;
+}
+
+function createFood({ snake, color, zone, occupiedFoods = [], avoidPosition, isTarget = false }) {
+  const blocked = [
+    ...snake,
+    ...occupiedFoods.map((food) => food.position),
+    avoidPosition,
+  ].filter(Boolean);
+  let candidates = positionsForZone(zone).filter((position) => {
+    return !blocked.some((blockedPosition) => samePosition(position, blockedPosition));
+  });
+
+  // Fall back to the full board if a preferred zone has no valid cell.
+  if (candidates.length === 0) {
+    candidates = positionsForZone('normal').filter((position) => {
+      return !blocked.some((blockedPosition) => samePosition(position, blockedPosition));
+    });
+  }
+
+  const position = candidates[Math.floor(Math.random() * candidates.length)];
+  return { position, color, isTarget };
+}
+
+function randomDifferentColor(color) {
+  const choices = FOOD_COLORS.filter((candidate) => candidate !== color);
+  return choices[Math.floor(Math.random() * choices.length)];
+}
+
+export function createFoodPair(snake, direction, streakColor = null, streakCount = 0) {
+  const avoidPosition = getNextHead(snake[0], direction);
+
+  if (!streakColor) {
+    const firstColor = FOOD_COLORS[Math.floor(Math.random() * FOOD_COLORS.length)];
+    const firstFood = createFood({
+      snake,
+      color: firstColor,
+      zone: 'normal',
+      avoidPosition,
+    });
+    const secondFood = createFood({
+      snake,
+      color: randomDifferentColor(firstColor),
+      zone: 'normal',
+      occupiedFoods: [firstFood],
+      avoidPosition,
+    });
+
+    return [firstFood, secondFood];
+  }
+
+  const targetFood = createFood({
+    snake,
+    color: streakColor,
+    zone: streakCount >= 2 ? 'edge-2' : 'edge-4',
+    avoidPosition,
+    isTarget: true,
+  });
+  const alternativeFood = createFood({
+    snake,
+    color: randomDifferentColor(streakColor),
+    zone: 'center',
+    occupiedFoods: [targetFood],
+    avoidPosition,
+  });
+
+  return [targetFood, alternativeFood];
 }
