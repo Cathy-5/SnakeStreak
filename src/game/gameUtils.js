@@ -72,6 +72,7 @@ function createFood({ snake, color, zone, occupiedFoods = [], avoidPosition, isT
     });
   }
 
+  if (candidates.length === 0) return null;
   const position = candidates[Math.floor(Math.random() * candidates.length)];
   return { position, color, isTarget };
 }
@@ -105,20 +106,86 @@ function createConfusionFood(snake, targetFood, occupiedFoods, avoidPosition) {
     position: candidates[Math.floor(Math.random() * candidates.length)],
     color: 'purple',
     isHazard: true,
+    anchorPosition: [...targetFood.position],
   };
 }
 
-export function createGoldenFood(snake, direction, occupiedFoods = []) {
-  return {
-    ...createFood({
+export function createRelocatedConfusionFood(snake, direction, foods) {
+  const normalFoods = foods.filter((food) => !food.isHazard && !food.isGolden);
+  const orderedAnchors = [
+    ...normalFoods.filter((food) => food.isTarget),
+    ...normalFoods.filter((food) => !food.isTarget),
+  ];
+  const avoidPosition = getNextHead(snake[0], direction);
+
+  for (const anchorFood of orderedAnchors) {
+    const confusionFood = createConfusionFood(
       snake,
-      color: 'gold',
-      zone: 'edge-2',
-      occupiedFoods,
-      avoidPosition: getNextHead(snake[0], direction),
-    }),
-    isGolden: true,
-  };
+      anchorFood,
+      foods,
+      avoidPosition,
+    );
+    if (confusionFood) return confusionFood;
+  }
+
+  return null;
+}
+
+export function createRelocatedConfusionPair(snake, direction, foods, hazard) {
+  const anchorFood = foods.find((food) => (
+    hazard.anchorPosition && samePosition(food.position, hazard.anchorPosition)
+  ));
+  if (!anchorFood) return foods;
+
+  const preservedFoods = foods.filter((food) => (
+    !food.isHazard && !samePosition(food.position, anchorFood.position)
+  ));
+  const oldPair = [
+    { position: hazard.position },
+    { position: anchorFood.position },
+  ];
+  const avoidPosition = getNextHead(snake[0], direction);
+  const nextAnchor = createFood({
+    snake,
+    color: anchorFood.color,
+    zone: anchorFood.isTarget ? 'edge-2' : 'normal',
+    occupiedFoods: [...preservedFoods, ...oldPair],
+    avoidPosition,
+    isTarget: anchorFood.isTarget,
+  });
+  if (!nextAnchor) return foods;
+
+  const nextHazard = createConfusionFood(
+    snake,
+    nextAnchor,
+    [...preservedFoods, ...oldPair, nextAnchor],
+    avoidPosition,
+  );
+  if (!nextHazard) return foods;
+
+  return [...preservedFoods, nextAnchor, nextHazard];
+}
+
+export function createGoldenFood(snake, direction, occupiedFoods = []) {
+  const goldenFood = createFood({
+    snake,
+    color: 'gold',
+    zone: 'edge-2',
+    occupiedFoods,
+    avoidPosition: getNextHead(snake[0], direction),
+  });
+  return goldenFood ? { ...goldenFood, isGolden: true } : null;
+}
+
+export function hasAvailableMove(snake, direction) {
+  const blockedBody = snake.slice(0, -1);
+  return Object.keys(REVERSE_DIRECTIONS).some((candidateDirection) => {
+    if (candidateDirection === REVERSE_DIRECTIONS[direction]) return false;
+
+    const [x, y] = getNextHead(snake[0], candidateDirection);
+    const insideBoard = x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE;
+    return insideBoard && !blockedBody.some((segment) => samePosition(segment, [x, y]));
+  });
 }
 
 export function createFoodPair(
@@ -140,6 +207,7 @@ export function createFoodPair(
       occupiedFoods,
       avoidPosition,
     });
+    if (!firstFood) return [];
     const secondFood = createFood({
       snake,
       color: randomDifferentColor(firstColor),
@@ -147,6 +215,8 @@ export function createFoodPair(
       occupiedFoods: [...occupiedFoods, firstFood],
       avoidPosition,
     });
+
+    if (!secondFood) return [firstFood];
 
     return [firstFood, secondFood];
   }
@@ -159,6 +229,7 @@ export function createFoodPair(
     avoidPosition,
     isTarget: true,
   });
+  if (!targetFood) return [];
   const alternativeFood = createFood({
     snake,
     color: randomDifferentColor(streakColor),
@@ -166,6 +237,8 @@ export function createFoodPair(
     occupiedFoods: [...occupiedFoods, targetFood],
     avoidPosition,
   });
+
+  if (!alternativeFood) return [targetFood];
 
   if (streakCount >= 2 && includeHazard) {
     const confusionFood = createConfusionFood(

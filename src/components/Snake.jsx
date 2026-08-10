@@ -29,6 +29,7 @@ export default function Snake({
   confused,
   mouthOpen,
   crashEffect,
+  purpleSnake,
 }) {
   const swallowIndex = Math.min(1, segments.length - 1);
   const facingDirection = getFacingDirection(segments);
@@ -46,12 +47,12 @@ export default function Snake({
         className={`snake-cell ${index === 0 ? 'snake-cell-head' : ''} ${isSwallowSegment ? 'snake-cell-swallow' : ''}`}
         key={`segment-${index}`}
         style={{
-          transform: `translate(${x * 100}%, ${y * 100}%)`,
+          transform: `translate3d(${x * 100}%, ${y * 100}%, 0)`,
           '--crash-delay': `${Math.min(index, 8) * 10}ms`,
         }}
       >
         <div
-          className={`snake ${segmentType} ${connectionClass} ${rewardColor ? `snake-reward reward-${rewardColor}` : ''} ${isSwallowSegment ? `snake-swallow reward-${swallowEffect.color}` : ''} ${confused ? 'snake-confused' : ''} ${confused && index === 0 ? 'snake-confused-head' : ''} ${mouthOpen && index === 0 ? 'snake-mouth-open' : ''} ${isCrashingHead ? `snake-crash crash-${crashEffect.direction.toLowerCase()}` : ''}`}
+          className={`snake ${segmentType} ${connectionClass} ${rewardColor ? `snake-reward reward-${rewardColor}` : ''} ${isSwallowSegment ? `snake-swallow reward-${swallowEffect.color}` : ''} ${purpleSnake ? 'snake-confused' : ''} ${confused && !purpleSnake ? 'snake-confused-glow' : ''} ${confused && index === 0 ? 'snake-confused-head' : ''} ${mouthOpen && index === 0 ? 'snake-mouth-open' : ''} ${isCrashingHead ? `snake-crash crash-${crashEffect.direction.toLowerCase()}` : ''}`}
           key={isSwallowSegment ? `swallow-${swallowEffect.id}` : 'visual'}
           style={{ '--reward-delay': `${Math.min(index, 12) * 38}ms` }}
         >
