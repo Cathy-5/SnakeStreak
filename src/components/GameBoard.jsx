@@ -47,7 +47,7 @@ export default function GameBoard({
   return (
     <div
       className={`gameboard ${rewardColor ? `reward-board reward-${rewardColor}` : ''} ${crashEffect ? `board-crash crash-${crashEffect.direction.toLowerCase()}` : ''}`}
-      style={{ '--move-duration': `${Math.max(50, moveInterval - 16)}ms` }}
+      style={{ '--move-duration': `${Math.max(50, moveInterval)}ms` }}
       onPointerDown={handlePointerDown}
       onPointerUp={handlePointerUp}
       onPointerCancel={() => { swipeStartRef.current = null; }}

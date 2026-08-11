@@ -549,8 +549,6 @@
   top: var(--board-border);
   left: var(--board-border);
   transition: transform var(--move-duration, 250ms) linear;
-  backface-visibility: hidden;
-  will-change: transform;
 }
 
 .snake-cell-head,
