@@ -45,7 +45,10 @@ export function unlockGameAudio(bank) {
   if (!bank || bank.unlocked) return;
   bank.unlocked = true;
 
-  Object.values(bank.sounds).forEach(({ tracks }) => {
+  Object.entries(bank.sounds).forEach(([name, { tracks }]) => {
+    // Never start the looping poison track during mobile audio unlocking.
+    if (name === 'poisonState') return;
+
     tracks.forEach((audio) => {
       const originalVolume = audio.volume;
       audio.volume = 0;

@@ -1645,10 +1645,6 @@ button:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .snake-cell {
-    transition: none;
-  }
-
   .snake-reward,
   .snake-swallow,
   .reward-board {
