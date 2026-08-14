@@ -4,18 +4,9 @@ SnakeStreak is a strategic twist on the classic Snake game. Collect eggs, build 
 
 ## Screenshots
 
-<table>
-  <tr>
-    <td align="center"><strong>Streak reward</strong></td>
-    <td align="center"><strong>Purple confusion</strong></td>
-    <td align="center"><strong>Game over</strong></td>
-  </tr>
-  <tr>
-    <td align="center"><img src="src/assets/images/readme-streak.png" width="230" height="250" alt="SnakeStreak streak reward screen"></td>
-    <td align="center"><img src="src/assets/images/readme-poisoned.png" width="230" height="250" alt="SnakeStreak purple confusion egg screen"></td>
-    <td align="center"><img src="src/assets/images/readme-game-over.png" width="230" height="250" alt="SnakeStreak game over screen"></td>
-  </tr>
-</table>
+<p align="center">
+  <img src="src/assets/images/Game%20presentation.png" alt="SnakeStreak game presentation">
+</p>
 
 ## Features
 
