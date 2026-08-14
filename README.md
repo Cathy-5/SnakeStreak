@@ -11,9 +11,9 @@ SnakeStreak is a strategic twist on the classic Snake game. Collect eggs, build 
     <td align="center"><strong>Game over</strong></td>
   </tr>
   <tr>
-    <td align="center"><img src="src/assets/images/streak.png" width="220" height="250" alt="SnakeStreak streak reward screen"></td>
-    <td align="center"><img src="src/assets/images/posioned.png" width="220" height="250" alt="SnakeStreak purple confusion egg screen"></td>
-    <td align="center"><img src="src/assets/images/gameOver.png" width="220" height="250" alt="SnakeStreak game over screen"></td>
+    <td align="center"><img src="src/assets/images/readme-streak.png" width="230" height="250" alt="SnakeStreak streak reward screen"></td>
+    <td align="center"><img src="src/assets/images/readme-poisoned.png" width="230" height="250" alt="SnakeStreak purple confusion egg screen"></td>
+    <td align="center"><img src="src/assets/images/readme-game-over.png" width="230" height="250" alt="SnakeStreak game over screen"></td>
   </tr>
 </table>
 
@@ -80,18 +80,3 @@ src/
     ├── images/              # Project screenshots
     └── sounds/              # Game sound effects
 ```
-
-## Learning Goals
-
-This project demonstrates React state management, immutable array updates, keyboard and pointer events, timed game loops, collision detection, responsive CSS, animation states, audio handling, and local persistence.
-
-## Future Improvements
-
-- Add more board themes and snake skins.
-- Add an accessible high-contrast mode.
-- Add replay or challenge mode for portfolio demonstrations.
-- Add automated tests for movement, collision, and food-placement rules.
-
-## License
-
-This project is intended as a personal programming portfolio project.
