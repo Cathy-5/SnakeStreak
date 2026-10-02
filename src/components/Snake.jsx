@@ -22,6 +22,48 @@ function getConnectionClass(segments, index) {
   return 'connect-up';
 }
 
+function getDirection(from, to) {
+  const [x, y] = from;
+  const [nextX, nextY] = to;
+  if (nextX > x) return 'right';
+  if (nextX < x) return 'left';
+  if (nextY > y) return 'down';
+  return 'up';
+}
+
+function getPort(direction) {
+  return {
+    right: [100, 50],
+    left: [0, 50],
+    down: [50, 100],
+    up: [50, 0],
+  }[direction];
+}
+
+function getBodyPath(segments, index) {
+  const current = segments[index];
+  const headwardPort = getPort(getDirection(current, segments[index - 1]));
+  const tailwardPort = getPort(getDirection(current, segments[index + 1]));
+  const [startX, startY] = headwardPort;
+  const [endX, endY] = tailwardPort;
+
+  if (startX === endX || startY === endY) {
+    return `M ${startX} ${startY} L ${endX} ${endY}`;
+  }
+
+  const controlOneX = startX + (50 - startX) * 0.72;
+  const controlOneY = startY + (50 - startY) * 0.72;
+  const controlTwoX = endX + (50 - endX) * 0.72;
+  const controlTwoY = endY + (50 - endY) * 0.72;
+
+  return `M ${startX} ${startY} C ${controlOneX} ${controlOneY}, ${controlTwoX} ${controlTwoY}, ${endX} ${endY}`;
+}
+
+function getTailPath(baseWidth) {
+  const margin = (100 - baseWidth) / 2;
+  return `M 100 ${margin} C 74 ${margin + 1}, 32 35, 0 50 C 32 65, 74 ${100 - margin - 1}, 100 ${100 - margin} Z`;
+}
+
 export default function Snake({
   segments,
   rewardColor,
@@ -41,6 +83,9 @@ export default function Snake({
       : index === segments.length - 1 ? 'snake-tail' : 'snake-body';
     const connectionClass = getConnectionClass(segments, index);
     const isCrashingHead = Boolean(crashEffect) && index === 0;
+    const tailProgress = (index - 1) / Math.max(segments.length - 3, 1);
+    const segmentWidth = 72 - Math.min(tailProgress, 1) * 22;
+    const tailBaseWidth = segments.length > 3 ? 50 : 72;
 
     return (
       <div
@@ -50,25 +95,40 @@ export default function Snake({
           transform: `translate3d(${x * 100}%, ${y * 100}%, 0)`,
           '--crash-delay': `${Math.min(index, 8) * 10}ms`,
         }}
-      >
+        >
         <div
           className={`snake ${segmentType} ${connectionClass} ${rewardColor ? `snake-reward reward-${rewardColor}` : ''} ${isSwallowSegment ? `snake-swallow reward-${swallowEffect.color}` : ''} ${purpleSnake ? 'snake-confused' : ''} ${confused && !purpleSnake ? 'snake-confused-glow' : ''} ${confused && index === 0 ? 'snake-confused-head' : ''} ${mouthOpen && index === 0 ? 'snake-mouth-open' : ''} ${isCrashingHead ? `snake-crash crash-${crashEffect.direction.toLowerCase()}` : ''}`}
           key={isSwallowSegment ? `swallow-${swallowEffect.id}` : 'visual'}
-          style={{ '--reward-delay': `${Math.min(index, 12) * 38}ms` }}
+          style={{
+            '--reward-delay': `${Math.min(index, 12) * 38}ms`,
+            '--segment-width': segmentWidth,
+          }}
         >
+          {index > 0 && index < segments.length - 1 && (
+            <svg className="snake-segment-art" viewBox="0 0 100 100" aria-hidden="true">
+              <path d={getBodyPath(segments, index)} />
+            </svg>
+          )}
           {index === 0 && (
             <span className={`snake-face face-${facingDirection}`} aria-hidden="true">
-              <i className="snake-eye eye-big" />
-              <i className="snake-eye eye-small" />
-              <i className="snake-nostril nostril-left" />
-              <i className="snake-nostril nostril-right" />
-              <span className="snake-mouth">
-                <i className="mouth-tooth tooth-top-left" />
-                <i className="mouth-tooth tooth-top-right" />
-                <i className="mouth-tooth tooth-bottom-left" />
-                <i className="mouth-tooth tooth-bottom-right" />
+              <i className="snake-eye eye-left" />
+              <i className="snake-eye eye-right" />
+              <span className="snake-bow">
+                <i className="bow-loop bow-loop-left" />
+                <i className="bow-loop bow-loop-right" />
+                <i className="bow-knot" />
               </span>
+              <span className="snake-mouth" />
             </span>
+          )}
+          {index === segments.length - 1 && segments.length > 1 && (
+            <svg
+              className={`snake-segment-art snake-tail-art tail-${connectionClass}`}
+              viewBox="0 0 100 100"
+              aria-hidden="true"
+            >
+              <path d={getTailPath(tailBaseWidth)} />
+            </svg>
           )}
         </div>
       </div>

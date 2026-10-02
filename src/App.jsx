@@ -765,11 +765,11 @@ function App() {
       : 'Game over';
   return (
     <main className="app">
-      <section className="game-shell" aria-label="SnakeStreak game">
+      <section className="game-shell" aria-label="Snake Break game">
         <header className="game-header">
-          <div className="brand" aria-label="SnakeStreak">
+          <div className="brand" aria-label="Snake Break">
             <span className="brand-mark" aria-hidden="true"><i /></span>
-            <h1>Snake<span>Streak</span></h1>
+            <h1>Snake<span>Break</span></h1>
           </div>
           <div className="scoreboard">
             <span>

@@ -1,11 +1,11 @@
-# SnakeStreak
+# Snake Break
 
-SnakeStreak is a strategic twist on the classic Snake game. Collect eggs, build colour streaks, avoid purple confusion eggs, and survive long enough to master the board.
+Snake Break is a playful twist on the classic Snake game. Collect eggs, build colour streaks, avoid purple confusion eggs, and survive long enough to master the board.
 
 ## Screenshots
 
 <p align="center">
-  <img src="src/assets/images/Game%20presentation.png" alt="SnakeStreak game presentation">
+  <img src="src/assets/images/Game%20presentation.png" alt="Snake Break game presentation">
 </p>
 
 ## Features
