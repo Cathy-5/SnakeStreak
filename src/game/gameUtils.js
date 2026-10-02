@@ -1,4 +1,4 @@
-export const BOARD_SIZE = 20;
+export const BOARD_SIZE = 16;
 export const FOOD_COLORS = ['brown', 'pink', 'blue'];
 
 const REVERSE_DIRECTIONS = {

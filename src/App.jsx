@@ -1,6 +1,7 @@
 import './App.css'
 import GameBoard from './components/GameBoard'
 import RecordsDashboard from './components/RecordsDashboard'
+import SnakeFace from './components/SnakeFace'
 import WowSnake from './components/WowSnake'
 import {
   createGameAudioBank,
@@ -10,6 +11,7 @@ import {
   unlockGameAudio,
 } from './audio/gameAudio'
 import {
+  BOARD_SIZE,
   createFoodPair,
   createGoldenFood,
   createRelocatedConfusionPair,
@@ -496,8 +498,8 @@ function App() {
         if (movementDirection === 'DOWN') newHead = [head[0], head[1] + 1];
 
         const outsideBoard =
-          newHead[0] < 0 || newHead[0] > 19 ||
-          newHead[1] < 0 || newHead[1] > 19;
+          newHead[0] < 0 || newHead[0] >= BOARD_SIZE ||
+          newHead[1] < 0 || newHead[1] >= BOARD_SIZE;
         const hitBody = previousSegments
           .slice(0, -1)
           .some((segment) => samePosition(segment, newHead));
@@ -768,7 +770,7 @@ function App() {
       <section className="game-shell" aria-label="Snake Break game">
         <header className="game-header">
           <div className="brand" aria-label="Snake Break">
-            <span className="brand-mark" aria-hidden="true"><i /></span>
+            <span className="brand-mark" aria-hidden="true"><SnakeFace /></span>
             <h1>Snake<span>Break</span></h1>
           </div>
           <div className="scoreboard">

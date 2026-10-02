@@ -1,4 +1,5 @@
 import '../App.css'
+import SnakeFace from './SnakeFace'
 
 function getFacingDirection(segments) {
   if (segments.length < 2) return 'right';
@@ -40,9 +41,18 @@ function getPort(direction) {
   }[direction];
 }
 
-function getBodyPath(segments, index) {
+function getBodyPath(segments, index, extendNeck = true) {
   const current = segments[index];
-  const headwardPort = getPort(getDirection(current, segments[index - 1]));
+  const headwardDirection = getDirection(current, segments[index - 1]);
+  const headwardEdge = getPort(headwardDirection);
+  const headwardPort = index === 1 && extendNeck
+    ? {
+        right: [150, 50],
+        left: [-50, 50],
+        down: [50, 150],
+        up: [50, -50],
+      }[headwardDirection]
+    : headwardEdge;
   const tailwardPort = getPort(getDirection(current, segments[index + 1]));
   const [startX, startY] = headwardPort;
   const [endX, endY] = tailwardPort;
@@ -51,8 +61,12 @@ function getBodyPath(segments, index) {
     return `M ${startX} ${startY} L ${endX} ${endY}`;
   }
 
-  const controlOneX = startX + (50 - startX) * 0.72;
-  const controlOneY = startY + (50 - startY) * 0.72;
+  const controlOneX = index === 1 && extendNeck
+    ? startX + (headwardEdge[0] - startX) * 0.55
+    : startX + (50 - startX) * 0.72;
+  const controlOneY = index === 1 && extendNeck
+    ? startY + (headwardEdge[1] - startY) * 0.55
+    : startY + (50 - startY) * 0.72;
   const controlTwoX = endX + (50 - endX) * 0.72;
   const controlTwoY = endY + (50 - endY) * 0.72;
 
@@ -76,7 +90,10 @@ export default function Snake({
   const swallowIndex = Math.min(1, segments.length - 1);
   const facingDirection = getFacingDirection(segments);
 
-  return segments.map(([x, y], index) => {
+  const renderSegments = (layer = 'fill') => segments.map(([x, y], index) => {
+    const outlineOnly = layer === 'outline';
+    const highlightOnly = layer === 'highlight';
+    if (highlightOnly && index === 0) return null;
     const isSwallowSegment = Boolean(swallowEffect) && index === swallowIndex;
     const segmentType = index === 0
       ? 'snake-head'
@@ -84,8 +101,8 @@ export default function Snake({
     const connectionClass = getConnectionClass(segments, index);
     const isCrashingHead = Boolean(crashEffect) && index === 0;
     const tailProgress = (index - 1) / Math.max(segments.length - 3, 1);
-    const segmentWidth = 72 - Math.min(tailProgress, 1) * 22;
-    const tailBaseWidth = segments.length > 3 ? 50 : 72;
+    const segmentWidth = 84 - Math.min(tailProgress, 1) * 30;
+    const tailBaseWidth = segments.length > 3 ? 54 : 84;
 
     return (
       <div
@@ -106,19 +123,15 @@ export default function Snake({
         >
           {index > 0 && index < segments.length - 1 && (
             <svg className="snake-segment-art" viewBox="0 0 100 100" aria-hidden="true">
-              <path d={getBodyPath(segments, index)} />
+              <path
+                className={highlightOnly ? 'snake-body-highlight' : undefined}
+                d={getBodyPath(segments, index, !highlightOnly)}
+              />
             </svg>
           )}
           {index === 0 && (
             <span className={`snake-face face-${facingDirection}`} aria-hidden="true">
-              <i className="snake-eye eye-left" />
-              <i className="snake-eye eye-right" />
-              <span className="snake-bow">
-                <i className="bow-loop bow-loop-left" />
-                <i className="bow-loop bow-loop-right" />
-                <i className="bow-knot" />
-              </span>
-              <span className="snake-mouth" />
+              <SnakeFace silhouetteOnly={outlineOnly} />
             </span>
           )}
           {index === segments.length - 1 && segments.length > 1 && (
@@ -127,11 +140,25 @@ export default function Snake({
               viewBox="0 0 100 100"
               aria-hidden="true"
             >
-              <path d={getTailPath(tailBaseWidth)} />
+              <path
+                className={highlightOnly ? 'snake-tail-highlight' : undefined}
+                d={highlightOnly
+                  ? `M 92 ${(100 - tailBaseWidth) / 2 + 13} Q 65 ${(100 - tailBaseWidth) / 2 + 14} 36 45`
+                  : getTailPath(tailBaseWidth)}
+              />
             </svg>
           )}
         </div>
       </div>
     );
   });
+
+  // Paint every outline behind every fill so joined pieces have no dark seams.
+  return (
+    <>
+      <div className="snake-outline-layer" aria-hidden="true">{renderSegments('outline')}</div>
+      {renderSegments()}
+      <div className="snake-highlight-layer" aria-hidden="true">{renderSegments('highlight')}</div>
+    </>
+  );
 }

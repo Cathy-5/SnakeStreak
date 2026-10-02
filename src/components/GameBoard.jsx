@@ -3,6 +3,7 @@ import { useRef } from 'react'
 import Food from './Food'
 import Snake from './Snake'
 import TailDissolve from './TailDissolve'
+import { BOARD_SIZE } from '../game/gameUtils'
 
 export default function GameBoard({
   segments,
@@ -47,7 +48,10 @@ export default function GameBoard({
   return (
     <div
       className={`gameboard ${rewardColor ? `reward-board reward-${rewardColor}` : ''} ${crashEffect ? `board-crash crash-${crashEffect.direction.toLowerCase()}` : ''}`}
-      style={{ '--move-duration': `${Math.max(50, moveInterval)}ms` }}
+      style={{
+        '--move-duration': `${Math.max(50, moveInterval)}ms`,
+        '--grid-size': BOARD_SIZE,
+      }}
       onPointerDown={handlePointerDown}
       onPointerUp={handlePointerUp}
       onPointerCancel={() => { swipeStartRef.current = null; }}
@@ -72,8 +76,8 @@ export default function GameBoard({
         <span
           className={`smash-effect smash-${crashEffect.direction.toLowerCase()}`}
           style={{
-            left: `${(crashEffect.position[0] + 0.5) * 5}%`,
-            top: `${(crashEffect.position[1] + 0.5) * 5}%`,
+            left: `${(crashEffect.position[0] + 0.5) * 100 / BOARD_SIZE}%`,
+            top: `${(crashEffect.position[1] + 0.5) * 100 / BOARD_SIZE}%`,
           }}
           aria-hidden="true"
         >
