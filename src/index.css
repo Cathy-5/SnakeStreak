@@ -1,7 +1,7 @@
 :root {
   font-family: "Trebuchet MS", "Avenir Next", sans-serif;
   color: #eff7ec;
-  background: #030605;
+  background: #f8f5e9;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -22,11 +22,9 @@ body {
   min-height: 100svh;
   margin: 0;
   overflow-x: hidden;
-  background-image:
-    linear-gradient(rgba(2, 5, 4, .94), rgba(2, 5, 4, .97)),
-    url('./assets/cover.png');
-  background-position: center;
-  background-size: cover;
+  background:
+    radial-gradient(ellipse at 50% 12%, rgba(255, 255, 255, .88), transparent 58%),
+    linear-gradient(145deg, #fbf9f1, #f2eddc);
 }
 
 button,
