@@ -8,6 +8,17 @@ export default function SnakeFace({ silhouetteOnly = false }) {
       {!silhouetteOnly && (
         <>
           <path className="snake-head-highlight" d="M56 21Q75 20 85 33" />
+          <g className="snake-open-mouth">
+            <path className="mouth-inner-tongue" d="M68 107C82 104 91 98 100 94C110 90 120 98 122 109C127 127 117 145 101 151C85 157 69 149 64 136C60 124 60 113 68 107Z" />
+            <path className="tongue-crease" d="M88 121Q99 132 111 132" />
+            <path className="mouth-cavity" d="M-7 84C-11 76-1 72 9 77C17 82 21 74 29 72C39 70 44 78 52 77C62 76 67 70 77 74C88 78 92 72 100 73C111 75 112 84 106 94L99 111C95 123 84 127 73 119L65 113H35L25 120C14 128 3 122 0 111Z" />
+            <path className="mouth-fang" d="M12 73Q17 73 23 77L18 91Z" />
+            <path className="mouth-fang" d="M79 76Q85 72 91 74L84 91Z" />
+          </g>
+          <g className="snake-crash-mouth">
+            <path className="crash-mouth-tongue" d="M29 77V88Q29 97 39 97Q49 97 49 88V77Z" />
+            <path className="crash-mouth-line" d="M22 77H80" />
+          </g>
           <g className="snake-eye">
             <path className="eye-white" d="M3 45H46Q44 68 24 68Q5 68 3 45Z" />
             <path className="eye-lid" d="M3 45H46" />
@@ -30,10 +41,6 @@ export default function SnakeFace({ silhouetteOnly = false }) {
           <ellipse className="snake-cheek" cx="17" cy="73" rx="7" ry="3.5" />
           <ellipse className="snake-cheek" cx="87" cy="73" rx="7" ry="3.5" />
           <path className="snake-smile" d="M44 79Q56 90 68 78" />
-          <g className="snake-open-mouth">
-            <path d="M43 75Q55 70 68 75C70 93 43 96 43 75Z" />
-            <path className="mouth-inner-tongue" d="M49 88Q56 79 64 85Q60 93 49 88Z" />
-          </g>
           <g className="snake-tongue">
             <path d="M55 79C76 69 89 89 104 78M104 78L117 69M104 78L116 89" />
           </g>

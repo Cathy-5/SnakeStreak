@@ -822,17 +822,40 @@
 .bow-fold { fill: none; stroke: #b83269; stroke-width: 2.8; stroke-linecap: round; }
 
 .snake-open-mouth,
-.snake-crash-eyes { display: none; }
-.snake-open-mouth { fill: #b5456b; }
-.mouth-inner-tongue { fill: #ff93b4; }
+.snake-crash-eyes,
+.snake-crash-mouth { display: none; }
+.snake-open-mouth { fill: #c83f70; }
+.snake-open-mouth > path:first-child {
+  stroke: var(--snake-ink);
+  stroke-width: 3.2;
+  stroke-linejoin: round;
+}
+.mouth-fang {
+  fill: #fff0da;
+  stroke: var(--snake-ink);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+.mouth-inner-tongue {
+  display: none;
+  fill: #ff93b4;
+  stroke: #b83269;
+  stroke-width: 1.2;
+}
+.tongue-crease {
+  display: none;
+  fill: none;
+  stroke: #b83269;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
 
-/* One short tongue flick every few seconds, independent of movement. */
 .snake-tongue {
+  display: none;
   fill: none;
   stroke: #ce517b;
   stroke-width: 4;
   transform-origin: 55px 79px;
-  animation: tongue-flick 4.8s ease-in-out infinite;
 }
 
 .snake-mouth-open .snake-smile,
@@ -842,8 +865,22 @@
 .snake-crash .snake-eye { visibility: hidden; }
 
 .snake-mouth-open .snake-open-mouth,
-.snake-crash .snake-open-mouth,
-.snake-crash .snake-crash-eyes { display: block; }
+.snake-crash .snake-crash-eyes,
+.snake-crash .snake-crash-mouth { display: block; }
+
+.crash-mouth-tongue {
+  fill: #ef4052;
+  stroke: var(--snake-ink);
+  stroke-width: 4;
+  stroke-linejoin: round;
+}
+
+.crash-mouth-line {
+  fill: none;
+  stroke: var(--snake-ink);
+  stroke-width: 4.5;
+  stroke-linecap: round;
+}
 
 .snake-reward {
   animation: streak-reward .62s ease var(--reward-delay) both;

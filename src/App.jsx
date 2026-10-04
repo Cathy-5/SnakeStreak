@@ -16,7 +16,6 @@ import {
   createGoldenFood,
   createRelocatedConfusionPair,
   createRelocatedConfusionFood,
-  getNextHead,
   hasAvailableMove,
   invertDirection,
   queueDirection,
@@ -655,8 +654,12 @@ function App() {
           return longerSnake;
         }
 
-        const nextPosition = getNextHead(newHead, movementDirection);
-        setMouthOpen(currentFoods.some((food) => samePosition(nextPosition, food.position)));
+        const eggNearby = currentFoods.some((food) => {
+          const distanceX = Math.abs(food.position[0] - newHead[0]);
+          const distanceY = Math.abs(food.position[1] - newHead[1]);
+          return Math.max(distanceX, distanceY) <= 2;
+        });
+        setMouthOpen(eggNearby);
         return [newHead, ...previousSegments.slice(0, -1)];
       });
     };
