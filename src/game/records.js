@@ -2,7 +2,6 @@ export const RECORDS_STORAGE_KEY = 'snakestreak-records-v1';
 
 const EMPTY_RECORD = {
   bestEggs: 0,
-  bestStreaks: 0,
   gamesPlayed: 0,
   boardsCleared: 0,
 };
@@ -22,10 +21,11 @@ export function loadRecords() {
     const savedRecords = JSON.parse(localStorage.getItem(RECORDS_STORAGE_KEY));
     if (!savedRecords) return emptyRecords;
 
-    return Object.fromEntries(Object.keys(emptyRecords).map((difficulty) => [
-      difficulty,
-      { ...EMPTY_RECORD, ...savedRecords[difficulty] },
-    ]));
+    return Object.fromEntries(Object.keys(emptyRecords).map((difficulty) => {
+      const record = { ...EMPTY_RECORD, ...savedRecords[difficulty] };
+      delete record.bestStreaks;
+      return [difficulty, record];
+    }));
   } catch {
     return emptyRecords;
   }

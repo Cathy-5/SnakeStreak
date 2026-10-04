@@ -1,7 +1,6 @@
 import crashUrl from '../assets/sounds/duang.MP3'
 import poisonPickupUrl from '../assets/sounds/just ate purple egg.MP3'
 import poisonStateUrl from '../assets/sounds/poisoned state.MP3'
-import streakUrl from '../assets/sounds/streak.MP3'
 import swallowUrl from '../assets/sounds/swallow.MP3'
 import winnerUrl from '../assets/sounds/winner.MP3'
 
@@ -10,7 +9,6 @@ const SOUND_CONFIG = {
   poisonPickup: { source: poisonPickupUrl, volume: 0.7, poolSize: 2 },
   poisonState: { source: poisonStateUrl, volume: 0.2, poolSize: 1, loop: true },
   crash: { source: crashUrl, volume: 0.65, poolSize: 2 },
-  streak: { source: streakUrl, volume: 0.75, poolSize: 2 },
   // Keep the victory cue short so it lands with the WOW screen.
   winner: { source: winnerUrl, volume: 0.85, poolSize: 1, maxDuration: 1_600 },
 };

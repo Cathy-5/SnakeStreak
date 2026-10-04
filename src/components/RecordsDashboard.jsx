@@ -14,14 +14,13 @@ export default function RecordsDashboard({ records, labels, onClose, onClear, cl
       </div>
 
       <div className="records-columns" aria-hidden="true">
-        <span>Mode</span><span>Eggs</span><span>Streaks</span><span>Wins</span><span>Runs</span>
+        <span>Mode</span><span>Eggs</span><span>Wins</span><span>Runs</span>
       </div>
       <div className="records-list">
         {ORDERED_DIFFICULTIES.map((difficulty) => (
           <div className="records-row" key={difficulty}>
             <strong>{labels[difficulty]}</strong>
             <span>{records[difficulty].bestEggs}</span>
-            <span>{records[difficulty].bestStreaks}</span>
             <span>{records[difficulty].boardsCleared}</span>
             <span>{records[difficulty].gamesPlayed}</span>
           </div>

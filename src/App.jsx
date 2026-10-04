@@ -13,7 +13,7 @@ import {
 import {
   BOARD_SIZE,
   createFoodPair,
-  createGoldenFood,
+  createCrackedEggPosition,
   createRelocatedConfusionPair,
   createRelocatedConfusionFood,
   hasAvailableMove,
@@ -42,27 +42,23 @@ const DIFFICULTIES = {
     label: 'Easy',
     moveInterval: 205,
     confusionDuration: 5_000,
-    goldenDuration: [7, 9],
   },
   normal: {
     label: 'Normal',
     moveInterval: 155,
     confusionDuration: 10_000,
-    goldenDuration: [5, 7],
   },
   difficult: {
     label: 'Difficult',
     moveInterval: 110,
     confusionDuration: 15_000,
-    goldenDuration: [3, 5],
   },
 };
-const randomGoldenThreshold = () => 8 + Math.floor(Math.random() * 5);
-const randomGoldenDuration = ([minimum, maximum]) => (
-  minimum + Math.floor(Math.random() * (maximum - minimum + 1))
-);
 const HAZARD_RELOCATION_DELAY_MS = 900;
 const HAZARD_PAIR_LIFETIME_MS = 6_000;
+const CRACKED_EGG_WARNING_MS = 3_000;
+const CRACKED_EGG_CHASE_MS = 8_000;
+const CRACKED_EGG_RESPAWN_DELAY_MS = 2_500;
 const PURPLE_SURGE_DURATION_MS = 4_000;
 const PURPLE_SURGE_WARNING_MS = 3_000;
 const PURPLE_SURGE_INTERVAL_MS = 30_000;
@@ -85,18 +81,11 @@ function App() {
   const [foods, setFoods] = useState(() => createFoodPair(STARTING_SEGMENTS, 'RIGHT'));
   const [gameOver, setGameOver] = useState(false);
   const [eggsEaten, setEggsEaten] = useState(0);
-  const [streaksCompleted, setStreaksCompleted] = useState(0);
-  const [streakColor, setStreakColor] = useState(null);
-  const [sameColorCount, setSameColorCount] = useState(0);
   const [feedback, setFeedback] = useState(null);
-  const [rewardColor, setRewardColor] = useState(null);
   const [swallowEffect, setSwallowEffect] = useState(null);
   const [tailEffect, setTailEffect] = useState(null);
   const [confusionSeconds, setConfusionSeconds] = useState(0);
   const [confusionEndsAt, setConfusionEndsAt] = useState(null);
-  const [goldenSeconds, setGoldenSeconds] = useState(0);
-  const [goldenEndsAt, setGoldenEndsAt] = useState(null);
-  const [goldenCharge, setGoldenCharge] = useState(false);
   const [mouthOpen, setMouthOpen] = useState(false);
   const [crashEffect, setCrashEffect] = useState(null);
   const [showGameOver, setShowGameOver] = useState(false);
@@ -105,6 +94,10 @@ function App() {
   const [purpleSurge, setPurpleSurge] = useState(false);
   const [purpleWarningSeconds, setPurpleWarningSeconds] = useState(0);
   const [hazardRelocation, setHazardRelocation] = useState(null);
+  const [crackedEgg, setCrackedEgg] = useState(null);
+  const crackedEggId = crackedEgg?.id;
+  const crackedEggPhase = crackedEgg?.phase;
+  const crackedEggEndsAt = crackedEgg?.endsAt;
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [records, setRecords] = useState(loadRecords);
   const [showRecords, setShowRecords] = useState(false);
@@ -119,21 +112,44 @@ function App() {
   const gameOverRef = useRef(false);
   const effectIdRef = useRef(0);
   const confusionEndsAtRef = useRef(0);
-  const goldenEndsAtRef = useRef(0);
-  const ordinaryEggsCollectedRef = useRef(0);
-  const goldenThresholdRef = useRef(randomGoldenThreshold());
   const latestSegmentsRef = useRef(STARTING_SEGMENTS);
   const audioBankRef = useRef(null);
   const soundEnabledRef = useRef(true);
   const eggsEatenRef = useRef(0);
-  const streaksCompletedRef = useRef(0);
   const runRecordedRef = useRef(false);
   const endingQueuedRef = useRef(false);
   const foodsRef = useRef(foods);
-  const streakColorRef = useRef(streakColor);
-  const sameColorCountRef = useRef(sameColorCount);
-  const goldenChargeRef = useRef(goldenCharge);
   const difficultySettingsRef = useRef(difficultySettings);
+  const crackedEggRef = useRef(null);
+  const crackedEggUnlockedRef = useRef(false);
+  const crackedEggRespawnTimerRef = useRef(null);
+
+  const spawnCrackedEgg = useEffectEvent((snake = latestSegmentsRef.current) => {
+    if (gameOverRef.current || crackedEggRef.current) return false;
+
+    const position = createCrackedEggPosition(snake, foodsRef.current);
+    if (!position) return false;
+
+    const egg = {
+      id: effectIdRef.current + 1,
+      position,
+      phase: 'warning',
+      secondsLeft: CRACKED_EGG_WARNING_MS / 1000,
+    };
+    crackedEggRef.current = egg;
+    setCrackedEgg(egg);
+    return true;
+  });
+
+  const scheduleCrackedEggRespawn = useEffectEvent(() => {
+    clearTimeout(crackedEggRespawnTimerRef.current);
+    crackedEggRespawnTimerRef.current = setTimeout(() => {
+      crackedEggRespawnTimerRef.current = null;
+      spawnCrackedEgg();
+    }, CRACKED_EGG_RESPAWN_DELAY_MS);
+  });
+
+  useEffect(() => () => clearTimeout(crackedEggRespawnTimerRef.current), []);
 
   const handleDirectionInput = (requestedDirection) => {
     if (!requestedDirection || gameOverRef.current) return;
@@ -159,18 +175,17 @@ function App() {
     gameOverRef.current = true;
     directionQueueRef.current = [];
     confusionEndsAtRef.current = 0;
-    goldenEndsAtRef.current = 0;
     stopGameSound(audioBankRef.current, 'poisonState');
     setConfusionEndsAt(null);
     setConfusionSeconds(0);
-    setGoldenEndsAt(null);
-    setGoldenSeconds(0);
-    goldenChargeRef.current = false;
-    setGoldenCharge(false);
     setMouthOpen(false);
     setPurpleSurge(false);
     setPurpleWarningSeconds(0);
     setHazardRelocation(null);
+    clearTimeout(crackedEggRespawnTimerRef.current);
+    crackedEggRespawnTimerRef.current = null;
+    crackedEggRef.current = null;
+    setCrackedEgg(null);
     setEndReason(reason);
 
     if (!runRecordedRef.current) {
@@ -270,14 +285,65 @@ function App() {
     };
   }, [difficulty, gameId, gameOver]);
 
-  // Keep the long-lived movement timer connected to the latest game state.
+  // Give the player a brief warning, then let the cracked egg chase for a while.
+  useEffect(() => {
+    if (!crackedEggId || gameOver) return undefined;
+
+    if (crackedEggPhase === 'warning') {
+      let secondsLeft = CRACKED_EGG_WARNING_MS / 1000;
+      const timer = setInterval(() => {
+        const currentEgg = crackedEggRef.current;
+        if (!currentEgg || currentEgg.id !== crackedEggId) return;
+        secondsLeft -= 1;
+        if (secondsLeft > 0) {
+          const updatedEgg = { ...currentEgg, secondsLeft };
+          crackedEggRef.current = updatedEgg;
+          setCrackedEgg(updatedEgg);
+          return;
+        }
+
+        const chasingEgg = {
+          ...currentEgg,
+          phase: 'chasing',
+          endsAt: Date.now() + CRACKED_EGG_CHASE_MS,
+          secondsLeft: CRACKED_EGG_CHASE_MS / 1000,
+        };
+        crackedEggRef.current = chasingEgg;
+        setCrackedEgg(chasingEgg);
+        setFeedback({ type: 'cracked', text: 'IT HATCHED · RUN!' });
+      }, 1_000);
+      return () => clearInterval(timer);
+    }
+
+    const id = crackedEggId;
+    const endsAt = crackedEggEndsAt;
+    const updateCountdown = () => {
+      const secondsLeft = Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
+      const currentEgg = crackedEggRef.current;
+      if (!currentEgg || currentEgg.id !== id) return;
+      if (secondsLeft === 0) {
+        crackedEggRef.current = null;
+        setCrackedEgg(null);
+        setFeedback({ type: 'cracked', text: 'THE CRACKED EGG GAVE UP' });
+        scheduleCrackedEggRespawn();
+        return;
+      }
+
+      const updatedEgg = { ...currentEgg, secondsLeft };
+      crackedEggRef.current = updatedEgg;
+      setCrackedEgg(updatedEgg);
+    };
+
+    updateCountdown();
+    const timer = setInterval(updateCountdown, 250);
+    return () => clearInterval(timer);
+  }, [crackedEggEndsAt, crackedEggId, crackedEggPhase, gameOver]);
+
+  // Keep movement logic connected to the latest food and difficulty state.
   useEffect(() => {
     foodsRef.current = foods;
-    streakColorRef.current = streakColor;
-    sameColorCountRef.current = sameColorCount;
-    goldenChargeRef.current = goldenCharge;
     difficultySettingsRef.current = difficultySettings;
-  }, [difficultySettings, foods, goldenCharge, sameColorCount, streakColor]);
+  }, [difficultySettings, foods]);
 
   // End early when every legal forward turn is blocked.
   useEffect(() => {
@@ -291,13 +357,6 @@ function App() {
     const timeout = setTimeout(() => setFeedback(null), 1100);
     return () => clearTimeout(timeout);
   }, [feedback]);
-
-  // Keep the completion reward visible long enough to read.
-  useEffect(() => {
-    if (!rewardColor) return undefined;
-    const timeout = setTimeout(() => setRewardColor(null), 900);
-    return () => clearTimeout(timeout);
-  }, [rewardColor]);
 
   useEffect(() => {
     if (!swallowEffect) return undefined;
@@ -385,25 +444,6 @@ function App() {
     return () => clearInterval(timer);
   }, [confusionEndsAt]);
 
-  useEffect(() => {
-    if (!goldenEndsAt) return undefined;
-
-    const updateCountdown = () => {
-      const remainingSeconds = Math.max(0, Math.ceil((goldenEndsAt - Date.now()) / 1000));
-      setGoldenSeconds(remainingSeconds);
-
-      if (remainingSeconds === 0) {
-        goldenEndsAtRef.current = 0;
-        setGoldenEndsAt(null);
-        setFoods((currentFoods) => currentFoods.filter((food) => !food.isGolden));
-      }
-    };
-
-    updateCountdown();
-    const timer = setInterval(updateCountdown, 250);
-    return () => clearInterval(timer);
-  }, [goldenEndsAt]);
-
   // Move one grid cell, then handle collisions and eggs.
   useEffect(() => {
     if (gameOver) return undefined;
@@ -421,75 +461,46 @@ function App() {
       const queuedDirection = directionQueueRef.current.shift();
       const movementDirection = queuedDirection ?? currentDirectionRef.current;
       const currentFoods = foodsRef.current;
-      const currentStreakColor = streakColorRef.current;
-      const currentSameColorCount = sameColorCountRef.current;
-      const currentGoldenCharge = goldenChargeRef.current;
       const currentDifficultySettings = difficultySettingsRef.current;
       currentDirectionRef.current = movementDirection;
       setDirection(movementDirection);
 
-      const placeNextFoods = (
-        nextSnake,
-        nextStreakColor = null,
-        nextStreakCount = 0,
-        preserveGolden = true,
-        preserveHazard = true,
-      ) => {
-        const activeGolden = preserveGolden && Date.now() < goldenEndsAtRef.current
-          ? currentFoods.find((food) => food.isGolden)
-          : null;
+      const maybeStartCrackedEgg = (snake) => {
+        if (
+          crackedEggUnlockedRef.current || crackedEggRef.current ||
+          snake.length < STARTING_SEGMENTS.length * 2
+        ) return false;
+
+        crackedEggUnlockedRef.current = true;
+        return spawnCrackedEgg(snake);
+      };
+
+      const placeNextFoods = (nextSnake, preserveHazard = true) => {
         const activeHazard = preserveHazard
           ? currentFoods.find((food) => food.isHazard) ?? null
           : null;
-        const persistentFoods = [activeGolden, activeHazard].filter(Boolean);
-        const nextFoods = createFoodPair(
-          nextSnake,
-          movementDirection,
-          nextStreakColor,
-          nextStreakCount,
-          {
-            occupiedFoods: persistentFoods,
-            includeHazard: persistentFoods.length === 0 && preserveHazard,
-          },
-        );
+        const persistentFoods = [activeHazard].filter(Boolean);
+        const occupiedFoods = crackedEggRef.current
+          ? [...persistentFoods, { position: crackedEggRef.current.position }]
+          : persistentFoods;
+        const nextFoods = createFoodPair(nextSnake, movementDirection, {
+          occupiedFoods,
+          includeHazard: persistentFoods.length === 0 && preserveHazard,
+        });
 
-        const normalFoodCount = nextFoods.filter((food) => !food.isHazard && !food.isGolden).length;
+        const normalFoodCount = nextFoods.filter((food) => !food.isHazard).length;
         if (normalFoodCount < 2) {
           setFoods([...nextFoods, ...persistentFoods]);
           scheduleRunEnding('victory');
           return;
         }
 
-        if (activeGolden) {
-          setFoods([...nextFoods, ...persistentFoods]);
-          return;
-        }
-
-        const goldenReady = ordinaryEggsCollectedRef.current >= goldenThresholdRef.current;
-        const hasConfusionEgg = nextFoods.some((food) => food.isHazard);
-
-        if (goldenReady && !hasConfusionEgg && !currentGoldenCharge) {
-          const occupiedFoods = [...nextFoods, ...persistentFoods];
-          const goldenFood = createGoldenFood(nextSnake, movementDirection, occupiedFoods);
-          if (!goldenFood) {
-            setFoods(occupiedFoods);
-            return;
-          }
-          const durationSeconds = randomGoldenDuration(currentDifficultySettings.goldenDuration);
-          const expirationTime = Date.now() + durationSeconds * 1000;
-          ordinaryEggsCollectedRef.current = 0;
-          goldenThresholdRef.current = randomGoldenThreshold();
-          goldenEndsAtRef.current = expirationTime;
-          setGoldenEndsAt(expirationTime);
-          setGoldenSeconds(durationSeconds);
-          setFoods([...occupiedFoods, goldenFood]);
-          return;
-        }
-
         setFoods([...nextFoods, ...persistentFoods]);
       };
 
-      setSegments((previousSegments) => {
+      const previousSegments = latestSegmentsRef.current;
+      // Run collision and effect logic once per tick, outside React's updater callback.
+      const nextSegments = (() => {
         const head = previousSegments[0];
         let newHead;
 
@@ -511,6 +522,50 @@ function App() {
             outsideBoard ? { direction: movementDirection, position: head } : null,
           );
           return previousSegments;
+        }
+
+        const activeCrackedEgg = crackedEggRef.current;
+        if (activeCrackedEgg?.phase === 'chasing') {
+          let nextCrackedPosition = activeCrackedEgg.position;
+          const [eggX, eggY] = activeCrackedEgg.position;
+          const candidates = [
+            [eggX + 1, eggY], [eggX - 1, eggY],
+            [eggX, eggY + 1], [eggX, eggY - 1],
+          ].filter(([x, y]) => (
+            x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE &&
+            !previousSegments.slice(0, -1).some((segment) => samePosition(segment, [x, y])) &&
+            !currentFoods.some((food) => samePosition(food.position, [x, y]))
+          ));
+
+          if (candidates.length) {
+            const distanceToHead = ([x, y]) => (
+              Math.abs(newHead[0] - x) + Math.abs(newHead[1] - y)
+            );
+            const closestDistance = Math.min(...candidates.map(distanceToHead));
+            const closestCandidates = candidates.filter((position) => (
+              distanceToHead(position) === closestDistance
+            ));
+            nextCrackedPosition = closestCandidates[
+              Math.floor(Math.random() * closestCandidates.length)
+            ];
+          }
+
+          const nextSnakeBody = [newHead, ...previousSegments.slice(0, -1)];
+          const eggTouchesSnake = [activeCrackedEgg.position, nextCrackedPosition]
+            .some((eggPosition) => nextSnakeBody.some((segment) => (
+              samePosition(segment, eggPosition)
+            )));
+
+          if (eggTouchesSnake) {
+            scheduleRunEnding('cracked');
+            return previousSegments;
+          }
+
+          if (!samePosition(nextCrackedPosition, activeCrackedEgg.position)) {
+            const movedEgg = { ...activeCrackedEgg, position: nextCrackedPosition };
+            crackedEggRef.current = movedEgg;
+            setCrackedEgg(movedEgg);
+          }
         }
 
         const eatenFood = currentFoods.find((food) => samePosition(newHead, food.position));
@@ -543,55 +598,6 @@ function App() {
             setHazardRelocation({ id: effectId, position: linkedHazard.position });
           }
 
-          if (eatenFood.isGolden) {
-            goldenEndsAtRef.current = 0;
-            setGoldenEndsAt(null);
-            setGoldenSeconds(0);
-            if (!currentStreakColor) {
-              goldenChargeRef.current = true;
-              setGoldenCharge(true);
-              setFeedback({
-                type: 'golden',
-                text: 'GOLDEN CHARGE · NEXT EGG COUNTS TWICE',
-              });
-              setFoods((currentFoods) => currentFoods.filter((food) => !food.isGolden));
-              return [newHead, ...previousSegments.slice(0, -1)];
-            }
-
-            const wildcardCount = currentSameColorCount + 1;
-            if (wildcardCount >= 3) {
-              if (soundEnabledRef.current) playGameSound(audioBankRef.current, 'streak');
-              streakColorRef.current = null;
-              sameColorCountRef.current = 0;
-              setStreakColor(null);
-              setSameColorCount(0);
-              const nextStreakTotal = streaksCompletedRef.current + 1;
-              streaksCompletedRef.current = nextStreakTotal;
-              setStreaksCompleted(nextStreakTotal);
-              updatePersonalBest(setRecords, difficulty, 'bestStreaks', nextStreakTotal);
-              const shorterSnake = [newHead, ...previousSegments.slice(0, -2)];
-              const safeSnake = shorterSnake.length > 0 ? shorterSnake : [newHead];
-              const removedTail = previousSegments.at(-2);
-              if (removedTail) {
-                setTailEffect({ id: effectId, color: currentStreakColor, position: removedTail });
-              }
-              setRewardColor(currentStreakColor);
-              setFeedback({ type: 'shrink', text: 'GOLDEN STREAK COMPLETE · −1 SEGMENT' });
-              placeNextFoods(safeSnake, null, 0, false);
-              return safeSnake;
-            }
-
-            sameColorCountRef.current = wildcardCount;
-            setSameColorCount(wildcardCount);
-            setFeedback({
-              type: 'golden',
-              text: `GOLD WILDCARD · ${currentStreakColor.toUpperCase()} ${wildcardCount}/3`,
-            });
-            const movingSnake = [newHead, ...previousSegments.slice(0, -1)];
-            placeNextFoods(movingSnake, currentStreakColor, wildcardCount, false);
-            return movingSnake;
-          }
-
           if (eatenFood.isHazard) {
             // Clear old turns so only new key presses use reversed controls.
             directionQueueRef.current = [];
@@ -604,53 +610,23 @@ function App() {
               type: 'confusion',
               text: `REVERSE DIRECTION · ${currentDifficultySettings.confusionDuration / 1000} SECONDS`,
             });
-            setFoods((currentFoods) => currentFoods.filter((food) => !food.isHazard));
-            return [newHead, ...previousSegments.slice(0, -1)];
+            const movingSnake = [newHead, ...previousSegments.slice(0, -1)];
+            const remainingFoods = currentFoods.filter((food) => !food.isHazard);
+            const nextHazard = createRelocatedConfusionFood(
+              movingSnake,
+              movementDirection,
+              remainingFoods,
+            );
+            setFoods(nextHazard ? [...remainingFoods, nextHazard] : remainingFoods);
+            return movingSnake;
           }
 
-          ordinaryEggsCollectedRef.current += 1;
-          const countIncrease = currentGoldenCharge ? 2 : 1;
-          const nextCount = eatenFood.color === currentStreakColor
-            ? currentSameColorCount + countIncrease
-            : countIncrease;
-          if (currentGoldenCharge) {
-            goldenChargeRef.current = false;
-            setGoldenCharge(false);
-          }
-          if (nextCount >= 3) {
-            if (soundEnabledRef.current) playGameSound(audioBankRef.current, 'streak');
-            streakColorRef.current = null;
-            sameColorCountRef.current = 0;
-            setStreakColor(null);
-            setSameColorCount(0);
-            const nextStreakTotal = streaksCompletedRef.current + 1;
-            streaksCompletedRef.current = nextStreakTotal;
-            setStreaksCompleted(nextStreakTotal);
-            updatePersonalBest(setRecords, difficulty, 'bestStreaks', nextStreakTotal);
-            // The third matching egg removes one segment instead of growing.
-            const shorterSnake = [newHead, ...previousSegments.slice(0, -2)];
-            const safeSnake = shorterSnake.length > 0 ? shorterSnake : [newHead];
-            // This is the extra tail cell lost to shrinking, not normal movement.
-            const removedTail = previousSegments.at(-2);
-            if (removedTail) {
-              setTailEffect({ id: effectId, color: eatenFood.color, position: removedTail });
-            }
-            setRewardColor(eatenFood.color);
-            setFeedback({ type: 'shrink', text: 'STREAK COMPLETE · −1 SEGMENT' });
-            placeNextFoods(safeSnake);
-            return safeSnake;
-          }
-
-          streakColorRef.current = eatenFood.color;
-          sameColorCountRef.current = nextCount;
-          setStreakColor(eatenFood.color);
-          setSameColorCount(nextCount);
           const longerSnake = [newHead, ...previousSegments];
-          setFeedback({
-            type: 'collect',
-            text: `${eatenFood.color.toUpperCase()} STREAK · ${nextCount}/3`,
-          });
-          placeNextFoods(longerSnake, eatenFood.color, nextCount, true, !linkedHazard);
+          const startedCrackedEgg = maybeStartCrackedEgg(longerSnake);
+          setFeedback(startedCrackedEgg
+            ? { type: 'cracked', text: 'SOMETHING’S CRACKING…' }
+            : { type: 'collect', text: `${eatenFood.color.toUpperCase()} EGG · +1 SEGMENT` });
+          placeNextFoods(longerSnake, !linkedHazard);
           return longerSnake;
         }
 
@@ -661,7 +637,9 @@ function App() {
         });
         setMouthOpen(eggNearby);
         return [newHead, ...previousSegments.slice(0, -1)];
-      });
+      })();
+      latestSegmentsRef.current = nextSegments;
+      setSegments(nextSegments);
     };
 
     // Align discrete game steps with display frames to avoid timer/paint drift.
@@ -694,36 +672,26 @@ function App() {
     directionQueueRef.current = [];
     gameOverRef.current = false;
     confusionEndsAtRef.current = 0;
-    goldenEndsAtRef.current = 0;
-    ordinaryEggsCollectedRef.current = 0;
     eggsEatenRef.current = 0;
-    streaksCompletedRef.current = 0;
     runRecordedRef.current = false;
     endingQueuedRef.current = false;
-    streakColorRef.current = null;
-    sameColorCountRef.current = 0;
-    goldenChargeRef.current = false;
-    goldenThresholdRef.current = randomGoldenThreshold();
+    crackedEggRef.current = null;
+    crackedEggUnlockedRef.current = false;
+    clearTimeout(crackedEggRespawnTimerRef.current);
+    crackedEggRespawnTimerRef.current = null;
     setSegments(STARTING_SEGMENTS);
     const resetFoods = createFoodPair(STARTING_SEGMENTS, 'RIGHT');
     foodsRef.current = resetFoods;
     setFoods(resetFoods);
     setGameOver(false);
     setEggsEaten(0);
-    setStreaksCompleted(0);
-    setStreakColor(null);
-    setSameColorCount(0);
     setFeedback(announceMode
       ? { type: 'mode', text: `${DIFFICULTIES[nextDifficulty].label.toUpperCase()} MODE` }
       : null);
-    setRewardColor(null);
     setSwallowEffect(null);
     setTailEffect(null);
     setConfusionSeconds(0);
     setConfusionEndsAt(null);
-    setGoldenSeconds(0);
-    setGoldenEndsAt(null);
-    setGoldenCharge(false);
     setMouthOpen(false);
     setPurpleSurge(false);
     setPurpleWarningSeconds(0);
@@ -731,6 +699,7 @@ function App() {
     setShowGameOver(false);
     setEndReason(null);
     setHazardRelocation(null);
+    setCrackedEgg(null);
     setDifficulty(nextDifficulty);
     difficultySettingsRef.current = DIFFICULTIES[nextDifficulty];
     setGameId((currentId) => currentId + 1);
@@ -788,6 +757,8 @@ function App() {
 
   const endingTitle = endReason === 'victory'
     ? 'Board mastered!'
+    : endReason === 'cracked'
+      ? 'The cracked egg caught you!'
     : endReason === 'trapped'
       ? 'No moves left'
       : 'Game over';
@@ -821,9 +792,6 @@ function App() {
           <div className="scoreboard">
             <span>
               <small>Eggs</small><strong>{eggsEaten}</strong><em>Best {currentRecord.bestEggs}</em>
-            </span>
-            <span>
-              <small>Streaks</small><strong>{streaksCompleted}</strong><em>Best {currentRecord.bestStreaks}</em>
             </span>
             <span><small>Size</small><strong>{segments.length}</strong></span>
           </div>
@@ -886,16 +854,6 @@ function App() {
           />
         )}
 
-        <div className={`streak-status ${streakColor ? `streak-${streakColor}` : ''}`}>
-          <span className="streak-label">{streakColor ?? 'Streak'}</span>
-          <span className="streak-dots" aria-label={`${sameColorCount} of 3 eggs`}>
-            {[0, 1, 2].map((dot) => (
-              <i key={dot} className={dot < sameColorCount ? 'filled' : ''} />
-            ))}
-          </span>
-          <strong>{sameColorCount}/3</strong>
-        </div>
-
         <p className="swipe-hint" role="status">
           <span className="swipe-hint-icon" aria-hidden="true">↕ ↔</span>
           <span>Swipe anywhere on the board to move</span>
@@ -908,7 +866,7 @@ function App() {
             segments={segments}
             direction={direction}
             foods={foods}
-            rewardColor={rewardColor}
+            crackedEgg={crackedEgg}
             swallowEffect={swallowEffect}
             tailEffect={tailEffect}
             confused={confusionSeconds > 0}
@@ -924,6 +882,18 @@ function App() {
           {feedback && <div className={`game-feedback ${feedback.type}`}>{feedback.text}</div>}
 
           <div className="power-statuses">
+            {crackedEgg?.phase === 'warning' && (
+              <div className="cracked-egg-status cracked-egg-warning-status" role="status">
+                <span>Cracked egg hatches in</span>
+                <strong>{crackedEgg.secondsLeft}</strong>
+              </div>
+            )}
+            {crackedEgg?.phase === 'chasing' && (
+              <div className="cracked-egg-status" role="status">
+                <span>It is chasing you</span>
+                <strong>{crackedEgg.secondsLeft}s</strong>
+              </div>
+            )}
             {purpleWarningSeconds > 0 && (
               <div className="purple-warning" role="status">
                 <span>Reverse direction in</span>
@@ -939,16 +909,6 @@ function App() {
             {purpleSurge && (
               <div className="purple-status" role="status">
                 Purple snake <small>Stay sharp.</small>
-              </div>
-            )}
-            {goldenSeconds > 0 && (
-              <div className="golden-status" role="status">
-                Golden egg <strong>{goldenSeconds}s</strong>
-              </div>
-            )}
-            {goldenCharge && (
-              <div className="golden-status golden-charge" role="status">
-                Golden charge <small>Next egg counts twice.</small>
               </div>
             )}
           </div>
@@ -968,12 +928,10 @@ function App() {
                     <em>Best {currentRecord.bestEggs}</em>
                   </span>
                   <span>
-                    <i className="final-icon final-streak" aria-hidden="true">
-                      <b /><b /><b />
-                    </i>
-                    <strong>{streaksCompleted}</strong>
-                    <small>Streaks</small>
-                    <em>Best {currentRecord.bestStreaks}</em>
+                    <i className="final-icon final-size" aria-hidden="true"><b /><b /><b /></i>
+                    <strong>{segments.length}</strong>
+                    <small>Snake size</small>
+                    <em>Segments</em>
                   </span>
                 </div>
                 <button onClick={() => resetGame()}>Play again</button>

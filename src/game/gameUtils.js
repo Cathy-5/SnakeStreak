@@ -30,6 +30,33 @@ export function samePosition(first, second) {
   return first[0] === second[0] && first[1] === second[1];
 }
 
+export function createCrackedEggPosition(snake, foods = []) {
+  const head = snake[0];
+  const occupied = [...snake, ...foods.map((food) => food.position)];
+  const edgeCells = [];
+  const openCells = [];
+
+  for (let x = 0; x < BOARD_SIZE; x += 1) {
+    for (let y = 0; y < BOARD_SIZE; y += 1) {
+      const position = [x, y];
+      if (occupied.some((cell) => samePosition(cell, position))) continue;
+
+      const distanceFromHead = Math.abs(head[0] - x) + Math.abs(head[1] - y);
+      if (distanceFromHead < 4) continue;
+
+      openCells.push(position);
+      if (x === 0 || y === 0 || x === BOARD_SIZE - 1 || y === BOARD_SIZE - 1) {
+        edgeCells.push(position);
+      }
+    }
+  }
+
+  const candidates = edgeCells.length ? edgeCells : openCells;
+  return candidates.length
+    ? candidates[Math.floor(Math.random() * candidates.length)]
+    : null;
+}
+
 export function getNextHead([x, y], direction) {
   if (direction === 'RIGHT') return [x + 1, y];
   if (direction === 'LEFT') return [x - 1, y];
@@ -55,7 +82,7 @@ function positionsForZone(zone) {
   return positions;
 }
 
-function createFood({ snake, color, zone, occupiedFoods = [], avoidPosition, isTarget = false }) {
+function createFood({ snake, color, zone, occupiedFoods = [], avoidPosition }) {
   const blocked = [
     ...snake,
     ...occupiedFoods.map((food) => food.position),
@@ -74,7 +101,7 @@ function createFood({ snake, color, zone, occupiedFoods = [], avoidPosition, isT
 
   if (candidates.length === 0) return null;
   const position = candidates[Math.floor(Math.random() * candidates.length)];
-  return { position, color, isTarget };
+  return { position, color };
 }
 
 function randomDifferentColor(color) {
@@ -111,14 +138,10 @@ function createConfusionFood(snake, targetFood, occupiedFoods, avoidPosition) {
 }
 
 export function createRelocatedConfusionFood(snake, direction, foods) {
-  const normalFoods = foods.filter((food) => !food.isHazard && !food.isGolden);
-  const orderedAnchors = [
-    ...normalFoods.filter((food) => food.isTarget),
-    ...normalFoods.filter((food) => !food.isTarget),
-  ];
+  const normalFoods = foods.filter((food) => !food.isHazard);
   const avoidPosition = getNextHead(snake[0], direction);
 
-  for (const anchorFood of orderedAnchors) {
+  for (const anchorFood of normalFoods) {
     const confusionFood = createConfusionFood(
       snake,
       anchorFood,
@@ -148,10 +171,9 @@ export function createRelocatedConfusionPair(snake, direction, foods, hazard) {
   const nextAnchor = createFood({
     snake,
     color: anchorFood.color,
-    zone: anchorFood.isTarget ? 'edge-2' : 'normal',
+    zone: 'normal',
     occupiedFoods: [...preservedFoods, ...oldPair],
     avoidPosition,
-    isTarget: anchorFood.isTarget,
   });
   if (!nextAnchor) return foods;
 
@@ -166,17 +188,6 @@ export function createRelocatedConfusionPair(snake, direction, foods, hazard) {
   return [...preservedFoods, nextAnchor, nextHazard];
 }
 
-export function createGoldenFood(snake, direction, occupiedFoods = []) {
-  const goldenFood = createFood({
-    snake,
-    color: 'gold',
-    zone: 'edge-2',
-    occupiedFoods,
-    avoidPosition: getNextHead(snake[0], direction),
-  });
-  return goldenFood ? { ...goldenFood, isGolden: true } : null;
-}
-
 export function hasAvailableMove(snake, direction) {
   const blockedBody = snake.slice(0, -1);
   return Object.keys(REVERSE_DIRECTIONS).some((candidateDirection) => {
@@ -188,68 +199,38 @@ export function hasAvailableMove(snake, direction) {
   });
 }
 
-export function createFoodPair(
-  snake,
-  direction,
-  streakColor = null,
-  streakCount = 0,
-  options = {},
-) {
+export function createFoodPair(snake, direction, options = {}) {
   const { occupiedFoods = [], includeHazard = true } = options;
   const avoidPosition = getNextHead(snake[0], direction);
-
-  if (!streakColor) {
-    const firstColor = FOOD_COLORS[Math.floor(Math.random() * FOOD_COLORS.length)];
-    const firstFood = createFood({
-      snake,
-      color: firstColor,
-      zone: 'normal',
-      occupiedFoods,
-      avoidPosition,
-    });
-    if (!firstFood) return [];
-    const secondFood = createFood({
-      snake,
-      color: randomDifferentColor(firstColor),
-      zone: 'normal',
-      occupiedFoods: [...occupiedFoods, firstFood],
-      avoidPosition,
-    });
-
-    if (!secondFood) return [firstFood];
-
-    return [firstFood, secondFood];
-  }
-
-  const targetFood = createFood({
+  const firstColor = FOOD_COLORS[Math.floor(Math.random() * FOOD_COLORS.length)];
+  const firstFood = createFood({
     snake,
-    color: streakColor,
-    zone: streakCount >= 2 ? 'edge-2' : 'edge-4',
+    color: firstColor,
+    zone: 'normal',
     occupiedFoods,
     avoidPosition,
-    isTarget: true,
   });
-  if (!targetFood) return [];
-  const alternativeFood = createFood({
+  if (!firstFood) return [];
+
+  const secondFood = createFood({
     snake,
-    color: randomDifferentColor(streakColor),
-    zone: 'center',
-    occupiedFoods: [...occupiedFoods, targetFood],
+    color: randomDifferentColor(firstColor),
+    zone: 'normal',
+    occupiedFoods: [...occupiedFoods, firstFood],
     avoidPosition,
   });
+  if (!secondFood) return [firstFood];
 
-  if (!alternativeFood) return [targetFood];
+  if (!includeHazard) return [firstFood, secondFood];
 
-  if (streakCount >= 2 && includeHazard) {
-    const confusionFood = createConfusionFood(
-      snake,
-      targetFood,
-      [...occupiedFoods, targetFood, alternativeFood],
-      avoidPosition,
-    );
+  const confusionFood = createConfusionFood(
+    snake,
+    firstFood,
+    [...occupiedFoods, firstFood, secondFood],
+    avoidPosition,
+  );
 
-    if (confusionFood) return [targetFood, alternativeFood, confusionFood];
-  }
-
-  return [targetFood, alternativeFood];
+  return confusionFood
+    ? [firstFood, secondFood, confusionFood]
+    : [firstFood, secondFood];
 }

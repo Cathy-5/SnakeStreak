@@ -89,7 +89,6 @@ function getDigestPosition(segments, position) {
 export default function Snake({
   segments,
   direction,
-  rewardColor,
   swallowEffect,
   confused,
   mouthOpen,
@@ -202,7 +201,7 @@ export default function Snake({
         }}
       >
         <div
-          className={`snake snake-head ${rewardColor ? `snake-reward reward-${rewardColor}` : ''} ${purpleSnake ? 'snake-confused' : ''} ${confused && !purpleSnake ? 'snake-confused-glow' : ''} ${confused ? 'snake-confused-head' : ''} ${mouthOpen ? 'snake-mouth-open' : ''} ${isCrashingHead ? `snake-crash crash-${crashEffect.direction.toLowerCase()}` : ''}`}
+          className={`snake snake-head ${purpleSnake ? 'snake-confused' : ''} ${confused && !purpleSnake ? 'snake-confused-glow' : ''} ${confused ? 'snake-confused-head' : ''} ${mouthOpen ? 'snake-mouth-open' : ''} ${isCrashingHead ? `snake-crash crash-${crashEffect.direction.toLowerCase()}` : ''}`}
         >
           <span className={`snake-face face-${facingDirection}`} aria-hidden="true">
             <SnakeFace silhouetteOnly={outlineOnly} />
@@ -239,7 +238,7 @@ export default function Snake({
         {bodyArt('outline')}
         {renderHead('outline')}
       </div>
-      <div className={`snake-body-fill ${purpleSnake ? 'snake-confused' : ''} ${confused && !purpleSnake ? 'snake-confused-glow' : ''} ${rewardColor ? `snake-body-reward reward-${rewardColor}` : ''}`}>
+      <div className={`snake-body-fill ${purpleSnake ? 'snake-confused' : ''} ${confused && !purpleSnake ? 'snake-confused-glow' : ''}`}>
         {bodyArt('fill')}
       </div>
       {renderHead()}

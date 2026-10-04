@@ -1,6 +1,6 @@
 # Snake Break
 
-Snake Break is a playful twist on the classic Snake game. Collect eggs, build colour streaks, avoid purple confusion eggs, and survive long enough to master the board.
+Snake Break is a playful twist on the classic Snake game. Collect eggs, dodge purple confusion eggs, and escape the cracked egg that comes after a growing snake.
 
 ## Screenshots
 
@@ -13,13 +13,11 @@ Snake Break is a playful twist on the classic Snake game. Collect eggs, build co
 - Classic grid-based Snake movement with keyboard and touch-swipe controls.
 - Three difficulty modes with different movement speeds and confusion durations.
 - Two-egg choice system that makes route planning more strategic.
-- Colour streaks: collect three matching eggs to trigger a visible reward and shrink the snake by one segment.
 - Purple confusion eggs that reverse the controls for a limited time.
 - Difficult-mode purple surges with a visible `3, 2, 1` warning countdown.
-- Golden eggs that create a temporary wildcard effect.
-- Tail dissolve and reward animations for streak completion.
+- A cracked egg that hatches when the snake reaches six segments and chases it across the board.
 - Wall impact animation, crash feedback, and a dedicated WOW victory scene.
-- Score, eggs-eaten, streak, snake-size, and personal-record tracking.
+- Egg count, snake size, and personal-record tracking.
 - Responsive layout for desktop, phone, and tablet screens.
 - Optional sound effects with mobile-safe audio unlocking.
 
@@ -28,8 +26,8 @@ Snake Break is a playful twist on the classic Snake game. Collect eggs, build co
 1. Choose a difficulty mode.
 2. Use the arrow keys on desktop or swipe anywhere on the board on mobile and tablet.
 3. Collect eggs while avoiding the snake's body and the board boundary.
-4. Plan around the active streak colour to collect three matching eggs.
-5. Avoid purple eggs unless you are ready for reversed controls.
+4. Avoid purple eggs unless you are ready for reversed controls.
+5. When the cracked egg hatches, keep moving and stay ahead of it.
 
 ## Tech Stack
 

@@ -20,7 +20,7 @@ export default function Food({ foods, relocatingHazardPosition, hazardLifetime }
     return (
       <div
         key={`${food.color}-${x}-${y}`}
-        className={`food food-${food.color} ${food.isTarget ? 'food-target' : ''} ${food.isHazard ? 'food-hazard' : ''} ${isRelocating ? 'food-relocating' : ''} ${isHazardAnchor ? 'food-hazard-anchor' : ''}`}
+        className={`food food-${food.color} ${food.isHazard ? 'food-hazard' : ''} ${isRelocating ? 'food-relocating' : ''} ${isHazardAnchor ? 'food-hazard-anchor' : ''}`}
         style={{
           gridColumn: x + 1,
           gridRow: y + 1,
@@ -28,8 +28,7 @@ export default function Food({ foods, relocatingHazardPosition, hazardLifetime }
         }}
         aria-label={
           food.isHazard ? `purple confusion egg${isRelocating ? ', moving soon' : ''}` :
-          food.isGolden ? 'limited-time golden wildcard egg' :
-          `${food.color} egg${food.isTarget ? ', streak target' : ''}`
+          `${food.color} egg`
         }
       />
     );

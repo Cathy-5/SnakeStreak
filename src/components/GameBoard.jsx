@@ -1,6 +1,7 @@
 import '../App.css'
 import { useRef } from 'react'
 import Food from './Food'
+import CrackedEgg from './CrackedEgg'
 import Snake from './Snake'
 import TailDissolve from './TailDissolve'
 import { BOARD_SIZE } from '../game/gameUtils'
@@ -9,7 +10,7 @@ export default function GameBoard({
   segments,
   direction,
   foods,
-  rewardColor,
+  crackedEgg,
   swallowEffect,
   tailEffect,
   confused,
@@ -48,7 +49,7 @@ export default function GameBoard({
 
   return (
     <div
-      className={`gameboard ${rewardColor ? `reward-board reward-${rewardColor}` : ''} ${crashEffect ? `board-crash crash-${crashEffect.direction.toLowerCase()}` : ''}`}
+      className={`gameboard ${crashEffect ? `board-crash crash-${crashEffect.direction.toLowerCase()}` : ''}`}
       style={{
         '--move-duration': `${Math.max(50, moveInterval)}ms`,
         '--grid-size': BOARD_SIZE,
@@ -61,7 +62,6 @@ export default function GameBoard({
       <Snake
         segments={segments}
         direction={direction}
-        rewardColor={rewardColor}
         swallowEffect={swallowEffect}
         confused={confused}
         mouthOpen={mouthOpen}
@@ -74,6 +74,9 @@ export default function GameBoard({
         relocatingHazardPosition={relocatingHazardPosition}
         hazardLifetime={hazardLifetime}
       />
+      {crackedEgg && (
+        <CrackedEgg position={crackedEgg.position} phase={crackedEgg.phase} />
+      )}
       {tailEffect && <TailDissolve effect={tailEffect} />}
       {crashEffect && (
         <span
