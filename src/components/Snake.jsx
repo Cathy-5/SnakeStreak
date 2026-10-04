@@ -1,5 +1,6 @@
 import '../App.css'
 import SnakeFace from './SnakeFace'
+import { useEffect, useState } from 'react'
 
 function getFacingDirection(segments) {
   if (segments.length < 2) return 'right';
@@ -87,14 +88,36 @@ export default function Snake({
   crashEffect,
   purpleSnake,
 }) {
-  const swallowIndex = Math.min(1, segments.length - 1);
+  const [digestFrame, setDigestFrame] = useState({ id: null, progress: 0 });
+  const swallowEffectId = swallowEffect?.id;
   const facingDirection = getFacingDirection(segments);
+  const digestActive = Boolean(
+    swallowEffect && digestFrame.id === swallowEffect.id && digestFrame.progress < 1,
+  );
+  const digestPosition = digestActive && segments.length > 1
+    ? 1 + digestFrame.progress * (segments.length - 2)
+    : null;
+
+  useEffect(() => {
+    if (swallowEffectId == null) return undefined;
+
+    let frameId;
+    let startedAt;
+    const animate = (timestamp) => {
+      startedAt ??= timestamp;
+      const progress = Math.min((timestamp - startedAt) / 650, 1);
+      setDigestFrame({ id: swallowEffectId, progress });
+      if (progress < 1) frameId = window.requestAnimationFrame(animate);
+    };
+
+    frameId = window.requestAnimationFrame(animate);
+    return () => window.cancelAnimationFrame(frameId);
+  }, [swallowEffectId]);
 
   const renderSegments = (layer = 'fill') => segments.map(([x, y], index) => {
     const outlineOnly = layer === 'outline';
     const highlightOnly = layer === 'highlight';
     if (highlightOnly && index === 0) return null;
-    const isSwallowSegment = Boolean(swallowEffect) && index === swallowIndex;
     const segmentType = index === 0
       ? 'snake-head'
       : index === segments.length - 1 ? 'snake-tail' : 'snake-body';
@@ -103,10 +126,13 @@ export default function Snake({
     const tailProgress = (index - 1) / Math.max(segments.length - 3, 1);
     const segmentWidth = 84 - Math.min(tailProgress, 1) * 30;
     const tailBaseWidth = segments.length > 3 ? 62 : 92;
+    const digestDistance = digestPosition == null ? Infinity : Math.abs(index - digestPosition);
+    const digestStrength = Math.max(0, 1 - digestDistance / 1.35);
+    const expandedWidth = segmentWidth * (1 + digestStrength * 0.48);
 
     return (
       <div
-        className={`snake-cell ${index === 0 ? 'snake-cell-head' : ''} ${isSwallowSegment ? 'snake-cell-swallow' : ''}`}
+        className={`snake-cell ${index === 0 ? 'snake-cell-head' : ''}`}
         key={`segment-${index}`}
         style={{
           transform: `translate3d(${x * 100}%, ${y * 100}%, 0)`,
@@ -114,11 +140,12 @@ export default function Snake({
         }}
         >
         <div
-          className={`snake ${segmentType} ${connectionClass} ${rewardColor ? `snake-reward reward-${rewardColor}` : ''} ${isSwallowSegment ? `snake-swallow reward-${swallowEffect.color}` : ''} ${purpleSnake ? 'snake-confused' : ''} ${confused && !purpleSnake ? 'snake-confused-glow' : ''} ${confused && index === 0 ? 'snake-confused-head' : ''} ${mouthOpen && index === 0 ? 'snake-mouth-open' : ''} ${isCrashingHead ? `snake-crash crash-${crashEffect.direction.toLowerCase()}` : ''}`}
-          key={isSwallowSegment ? `swallow-${swallowEffect.id}` : 'visual'}
+          className={`snake ${segmentType} ${connectionClass} ${digestStrength > 0 ? 'snake-digest-bulge' : ''} ${rewardColor ? `snake-reward reward-${rewardColor}` : ''} ${purpleSnake ? 'snake-confused' : ''} ${confused && !purpleSnake ? 'snake-confused-glow' : ''} ${confused && index === 0 ? 'snake-confused-head' : ''} ${mouthOpen && index === 0 ? 'snake-mouth-open' : ''} ${isCrashingHead ? `snake-crash crash-${crashEffect.direction.toLowerCase()}` : ''}`}
+          key="visual"
           style={{
             '--reward-delay': `${Math.min(index, 12) * 38}ms`,
-            '--segment-width': segmentWidth,
+            '--segment-width': expandedWidth,
+            '--digest-tail-scale': 1 + digestStrength * 0.22,
           }}
         >
           {index > 0 && index < segments.length - 1 && (

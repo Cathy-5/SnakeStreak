@@ -598,10 +598,7 @@
   transition: transform var(--move-duration, 250ms) linear;
 }
 
-.snake-cell-head,
-.snake-cell-swallow {
-  z-index: 4;
-}
+.snake-cell-head { z-index: 4; }
 
 .snake {
   width: 100%;
@@ -803,11 +800,6 @@
   animation: streak-reward .62s ease var(--reward-delay) both;
 }
 
-.snake-swallow {
-  z-index: 4;
-  animation: swallow-bump .28s ease-out both;
-}
-
 .snake-confused {
   color: #8f5ac7;
   background: transparent;
@@ -943,6 +935,11 @@
   --egg-outline: #a66d00;
   box-shadow: 0 0 12px rgba(255, 216, 77, .8), inset 1px 1px 0 rgba(255, 255, 255, .6);
   animation: golden-shine .65s ease-in-out infinite alternate;
+}
+
+.snake-digest-bulge.snake-tail .snake-tail-art path {
+  transform: scale(var(--digest-tail-scale));
+  transform-origin: 100% 50%;
 }
 
 .food-target {
@@ -1531,14 +1528,6 @@ button:focus-visible { outline: 3px solid var(--snake-ink); outline-offset: 3px;
   }
 }
 
-@keyframes swallow-bump {
-  45% {
-    color: var(--reward-color);
-    filter: drop-shadow(0 0 8px var(--reward-color));
-    transform: scale(1.35);
-  }
-}
-
 @keyframes tail-dissolve {
   0%, 25% { opacity: 1; transform: scale(1); }
   100% { opacity: 0; transform: scale(.2); filter: blur(3px); }
@@ -1710,10 +1699,10 @@ button:focus-visible { outline: 3px solid var(--snake-ink); outline-offset: 3px;
 @media (prefers-reduced-motion: reduce) {
   .snake-tongue { display: none; animation: none; }
   .snake-reward,
-  .snake-swallow,
   .reward-board {
     animation: reward-flash .25s ease both;
   }
+
 
   .tail-dissolve {
     animation: reduced-tail-flash .3s ease both;

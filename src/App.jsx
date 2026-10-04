@@ -301,7 +301,7 @@ function App() {
 
   useEffect(() => {
     if (!swallowEffect) return undefined;
-    const timeout = setTimeout(() => setSwallowEffect(null), 300);
+    const timeout = setTimeout(() => setSwallowEffect(null), 700);
     return () => clearTimeout(timeout);
   }, [swallowEffect]);
 
@@ -417,7 +417,7 @@ function App() {
       });
     };
 
-    const timer = setInterval(() => {
+    const moveOneStep = () => {
       const queuedDirection = directionQueueRef.current.shift();
       const movementDirection = queuedDirection ?? currentDirectionRef.current;
       const currentFoods = foodsRef.current;
@@ -657,9 +657,29 @@ function App() {
         setMouthOpen(currentFoods.some((food) => samePosition(nextPosition, food.position)));
         return [newHead, ...previousSegments.slice(0, -1)];
       });
-    }, movementInterval);
+    };
 
-    return () => clearInterval(timer);
+    // Align discrete game steps with display frames to avoid timer/paint drift.
+    let animationFrame = 0;
+    let previousFrameTime = null;
+    let elapsedSinceMove = 0;
+    const animate = (timestamp) => {
+      if (previousFrameTime !== null) {
+        elapsedSinceMove += Math.min(timestamp - previousFrameTime, movementInterval);
+      }
+      previousFrameTime = timestamp;
+
+      if (elapsedSinceMove >= movementInterval) {
+        elapsedSinceMove %= movementInterval;
+        moveOneStep();
+      }
+
+      animationFrame = window.requestAnimationFrame(animate);
+    };
+
+    animationFrame = window.requestAnimationFrame(animate);
+
+    return () => window.cancelAnimationFrame(animationFrame);
   }, [difficulty, gameOver, movementInterval]);
 
   const resetGame = (nextDifficulty = difficulty, announceMode = false) => {
