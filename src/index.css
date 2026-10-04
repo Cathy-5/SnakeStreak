@@ -1,7 +1,7 @@
 :root {
   font-family: "Trebuchet MS", "Avenir Next", sans-serif;
   color: #45434c;
-  background: #f8f5e9;
+  background: #cec9ca;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -23,8 +23,8 @@ body {
   margin: 0;
   overflow-x: hidden;
   background:
-    radial-gradient(ellipse at 50% 12%, rgba(255, 255, 255, .88), transparent 58%),
-    linear-gradient(145deg, #fbf9f1, #f2eddc);
+    radial-gradient(ellipse at 50% 12%, rgba(255, 255, 255, .72), transparent 58%),
+    linear-gradient(145deg, #ddd8d6, #c3bec2);
 }
 
 button,

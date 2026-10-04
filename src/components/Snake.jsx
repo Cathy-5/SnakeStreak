@@ -75,7 +75,7 @@ function getBodyPath(segments, index, extendNeck = true) {
 
 function getTailPath(baseWidth) {
   const margin = (100 - baseWidth) / 2;
-  return `M 100 ${margin} C 74 ${margin + 1}, 32 35, 0 50 C 32 65, 74 ${100 - margin - 1}, 100 ${100 - margin} Z`;
+  return `M 100 ${margin} C 72 ${margin + 2}, 31 36, 8 43 Q 1 50 8 57 C 31 64, 72 ${100 - margin - 2}, 100 ${100 - margin} Z`;
 }
 
 export default function Snake({
@@ -102,7 +102,7 @@ export default function Snake({
     const isCrashingHead = Boolean(crashEffect) && index === 0;
     const tailProgress = (index - 1) / Math.max(segments.length - 3, 1);
     const segmentWidth = 84 - Math.min(tailProgress, 1) * 30;
-    const tailBaseWidth = segments.length > 3 ? 54 : 84;
+    const tailBaseWidth = segments.length > 3 ? 62 : 92;
 
     return (
       <div

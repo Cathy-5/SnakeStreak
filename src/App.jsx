@@ -768,10 +768,29 @@ function App() {
   return (
     <main className="app">
       <section className="game-shell" aria-label="Snake Break game">
+        <div className="game-top-panel">
         <header className="game-header">
           <div className="brand" aria-label="Snake Break">
             <span className="brand-mark" aria-hidden="true"><SnakeFace /></span>
-            <h1>Snake<span>Break</span></h1>
+            <div className="brand-copy">
+              <h1 aria-label="Snake Break">
+                <span className="brand-word-snake">Snake</span>
+                <svg className="brand-b-character" viewBox="0 0 72 80" aria-hidden="true">
+                  <path
+                    className="brand-b-shell"
+                    d="M18 5C39 1 59 8 65 24C69 34 65 40 57 42C67 47 69 57 64 67C57 79 35 82 18 75L10 69L16 62L9 56L16 50L9 44L16 38L9 31L16 25L10 18L17 13L13 9Z"
+                  />
+                  <path className="brand-b-spot" d="M38 20C41 17 44 20 47 20C50 19 53 22 51 25C55 27 52 31 49 32C48 36 44 37 41 34C38 36 34 33 36 30C32 28 34 24 37 24C35 22 36 21 38 20Z" />
+                  <path className="brand-b-spot" d="M41 53C43 50 46 52 48 51C51 49 54 52 52 55C56 57 53 60 50 61C49 64 46 66 43 63C40 66 37 62 39 60C35 58 37 55 40 55Z" />
+                  <path className="brand-b-freckle" d="M27 17C28 15 30 16 30 18C30 20 28 21 27 19Z" />
+                  <path className="brand-b-freckle" d="M57 34C58 32 60 33 60 35C60 37 58 38 57 36Z" />
+                  <path className="brand-b-freckle" d="M28 46C29 44 31 45 31 47C31 49 29 50 28 48Z" />
+                  <path className="brand-b-freckle" d="M57 70C58 68 60 69 60 71C60 73 58 74 57 72Z" />
+                </svg>
+                <span className="brand-word-rest">reak</span>
+              </h1>
+              <p className="brand-tagline">A tiny escape between tasks</p>
+            </div>
           </div>
           <div className="scoreboard">
             <span>
@@ -855,6 +874,7 @@ function App() {
           <span className="swipe-hint-icon" aria-hidden="true">↕ ↔</span>
           <span>Swipe anywhere on the board to move</span>
         </p>
+        </div>
 
         <div className="board-frame">
           <GameBoard
