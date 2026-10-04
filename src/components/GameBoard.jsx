@@ -7,6 +7,7 @@ import { BOARD_SIZE } from '../game/gameUtils'
 
 export default function GameBoard({
   segments,
+  direction,
   foods,
   rewardColor,
   swallowEffect,
@@ -59,12 +60,14 @@ export default function GameBoard({
     >
       <Snake
         segments={segments}
+        direction={direction}
         rewardColor={rewardColor}
         swallowEffect={swallowEffect}
         confused={confused}
         mouthOpen={mouthOpen}
         crashEffect={crashEffect}
         purpleSnake={purpleSnake}
+        moveInterval={moveInterval}
       />
       <Food
         foods={foods}

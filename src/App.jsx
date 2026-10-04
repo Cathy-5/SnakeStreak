@@ -82,6 +82,7 @@ const getHazardKey = (food) => food
 function App() {
   // The first segment is the head; each pair is [column, row].
   const [segments, setSegments] = useState(STARTING_SEGMENTS);
+  const [direction, setDirection] = useState('RIGHT');
   const [foods, setFoods] = useState(() => createFoodPair(STARTING_SEGMENTS, 'RIGHT'));
   const [gameOver, setGameOver] = useState(false);
   const [eggsEaten, setEggsEaten] = useState(0);
@@ -426,6 +427,7 @@ function App() {
       const currentGoldenCharge = goldenChargeRef.current;
       const currentDifficultySettings = difficultySettingsRef.current;
       currentDirectionRef.current = movementDirection;
+      setDirection(movementDirection);
 
       const placeNextFoods = (
         nextSnake,
@@ -685,6 +687,7 @@ function App() {
   const resetGame = (nextDifficulty = difficulty, announceMode = false) => {
     stopAllGameSounds(audioBankRef.current);
     currentDirectionRef.current = 'RIGHT';
+    setDirection('RIGHT');
     directionQueueRef.current = [];
     gameOverRef.current = false;
     confusionEndsAtRef.current = 0;
@@ -900,6 +903,7 @@ function App() {
           <GameBoard
             key={gameId}
             segments={segments}
+            direction={direction}
             foods={foods}
             rewardColor={rewardColor}
             swallowEffect={swallowEffect}

@@ -595,10 +595,11 @@
   z-index: 2;
   top: var(--board-border);
   left: var(--board-border);
-  transition: transform var(--move-duration, 250ms) linear;
+  transition: none;
 }
 
 .snake-cell-head { z-index: 4; }
+.snake-cell-tail { z-index: 4; }
 
 .snake {
   width: 100%;
@@ -642,7 +643,7 @@
 .snake-segment-art path {
   fill: none;
   stroke: currentColor;
-  stroke-width: calc(var(--segment-width, 72) + 8);
+  stroke-width: 92;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
@@ -659,9 +660,64 @@
   pointer-events: none;
 }
 
+.snake-body-fill {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  color: var(--snake-skin);
+  pointer-events: none;
+}
+
+.snake-body-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.snake-body-path,
+.snake-digest-bump {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: .92;
+  stroke-linecap: butt;
+  stroke-linejoin: round;
+}
+
+.snake-digest-bump {
+  fill: currentColor;
+  stroke: none;
+}
+
+.snake-body-art-outline .snake-body-path,
+.snake-body-art-outline .snake-digest-bump {
+  stroke: var(--snake-outline);
+  stroke-width: 1.12;
+}
+
+.snake-body-art-outline .snake-digest-bump {
+  fill: var(--snake-outline);
+  stroke: none;
+}
+
+.snake-body-path {
+  stroke-linecap: round;
+}
+
+.snake-body-art-highlight .snake-body-path {
+  stroke: #fff5ed;
+  stroke-width: .12;
+  opacity: .65;
+  transform: translate(-.12px, -.14px);
+}
+
+.snake-body-art-highlight .snake-digest-bump { display: none; }
+
 .snake-outline-layer .snake-segment-art path {
   stroke: var(--snake-outline);
-  stroke-width: calc(var(--segment-width) + 18);
+  stroke-width: 106;
 }
 
 .snake-outline-layer .snake-tail-art path {
@@ -683,13 +739,6 @@
   z-index: 3;
   opacity: .68;
   pointer-events: none;
-}
-
-/* Keep the shine above the joined body fills so it stays continuous at turns. */
-.snake-highlight-layer .snake-body-highlight {
-  stroke: #fff5ed;
-  stroke-width: calc(var(--segment-width) * .12);
-  transform: translate(-6px, -10px);
 }
 
 .snake-highlight-layer .snake-tail-highlight {
@@ -800,6 +849,10 @@
   animation: streak-reward .62s ease var(--reward-delay) both;
 }
 
+.snake-body-reward {
+  animation: streak-body-reward .62s ease both;
+}
+
 .snake-confused {
   color: #8f5ac7;
   background: transparent;
@@ -825,26 +878,14 @@
   animation: board-smash .46s ease-out both;
 }
 
-.snake-crash.crash-right { animation: crash-right .46s ease-out both; }
-.snake-crash.crash-left { animation: crash-left .46s ease-out both; }
-.snake-crash.crash-up { animation: crash-up .46s ease-out both; }
-.snake-crash.crash-down { animation: crash-down .46s ease-out both; }
+.snake-crash.crash-right,
+.snake-crash.crash-left,
+.snake-crash.crash-up,
+.snake-crash.crash-down { animation: none; }
 
 .snake-crash .snake-crash-eyes {
   animation: crash-eyes .42s ease-out both;
 }
-
-.board-crash .snake-cell {
-  animation-duration: .46s;
-  animation-timing-function: ease-out;
-  animation-delay: var(--crash-delay);
-  animation-fill-mode: both;
-}
-
-.board-crash.crash-right .snake-cell { animation-name: recoil-right; }
-.board-crash.crash-left .snake-cell { animation-name: recoil-left; }
-.board-crash.crash-up .snake-cell { animation-name: recoil-up; }
-.board-crash.crash-down .snake-cell { animation-name: recoil-down; }
 
 .smash-effect {
   width: 0;
@@ -1528,6 +1569,13 @@ button:focus-visible { outline: 3px solid var(--snake-ink); outline-offset: 3px;
   }
 }
 
+@keyframes streak-body-reward {
+  45% {
+    color: var(--reward-color);
+    filter: drop-shadow(0 0 7px var(--reward-color));
+  }
+}
+
 @keyframes tail-dissolve {
   0%, 25% { opacity: 1; transform: scale(1); }
   100% { opacity: 0; transform: scale(.2); filter: blur(3px); }
@@ -1699,6 +1747,7 @@ button:focus-visible { outline: 3px solid var(--snake-ink); outline-offset: 3px;
 @media (prefers-reduced-motion: reduce) {
   .snake-tongue { display: none; animation: none; }
   .snake-reward,
+  .snake-body-reward,
   .reward-board {
     animation: reward-flash .25s ease both;
   }

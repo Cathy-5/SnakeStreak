@@ -1,102 +1,175 @@
 import '../App.css'
 import SnakeFace from './SnakeFace'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { BOARD_SIZE } from '../game/gameUtils'
 
-function getFacingDirection(segments) {
-  if (segments.length < 2) return 'right';
+function getContinuousBodyPath(segments) {
+  if (segments.length < 2) return '';
 
-  const [headX, headY] = segments[0];
-  const [neckX, neckY] = segments[1];
-  if (headX > neckX) return 'right';
-  if (headX < neckX) return 'left';
-  if (headY > neckY) return 'down';
-  return 'up';
-}
+  const points = segments.map(([x, y]) => [x + 0.5, y + 0.5]);
+  const cornerRadius = 0.22;
+  let path = `M ${points[0][0]} ${points[0][1]}`;
 
-function getConnectionClass(segments, index) {
-  if (index === 0) return '';
+  for (let index = 1; index < points.length - 1; index += 1) {
+    const previous = points[index - 1];
+    const current = points[index];
+    const next = points[index + 1];
+    const incomingLength = Math.abs(current[0] - previous[0]) + Math.abs(current[1] - previous[1]);
+    const outgoingLength = Math.abs(next[0] - current[0]) + Math.abs(next[1] - current[1]);
+    const radius = Math.min(cornerRadius, incomingLength / 2, outgoingLength / 2);
 
-  const [x, y] = segments[index];
-  const [previousX, previousY] = segments[index - 1];
-  if (previousX > x) return 'connect-right';
-  if (previousX < x) return 'connect-left';
-  if (previousY > y) return 'connect-down';
-  return 'connect-up';
-}
-
-function getDirection(from, to) {
-  const [x, y] = from;
-  const [nextX, nextY] = to;
-  if (nextX > x) return 'right';
-  if (nextX < x) return 'left';
-  if (nextY > y) return 'down';
-  return 'up';
-}
-
-function getPort(direction) {
-  return {
-    right: [100, 50],
-    left: [0, 50],
-    down: [50, 100],
-    up: [50, 0],
-  }[direction];
-}
-
-function getBodyPath(segments, index, extendNeck = true) {
-  const current = segments[index];
-  const headwardDirection = getDirection(current, segments[index - 1]);
-  const headwardEdge = getPort(headwardDirection);
-  const headwardPort = index === 1 && extendNeck
-    ? {
-        right: [150, 50],
-        left: [-50, 50],
-        down: [50, 150],
-        up: [50, -50],
-      }[headwardDirection]
-    : headwardEdge;
-  const tailwardPort = getPort(getDirection(current, segments[index + 1]));
-  const [startX, startY] = headwardPort;
-  const [endX, endY] = tailwardPort;
-
-  if (startX === endX || startY === endY) {
-    return `M ${startX} ${startY} L ${endX} ${endY}`;
+    if (previous[0] !== next[0] && previous[1] !== next[1]) {
+      const beforeCorner = [
+        current[0] + Math.sign(previous[0] - current[0]) * radius,
+        current[1] + Math.sign(previous[1] - current[1]) * radius,
+      ];
+      const afterCorner = [
+        current[0] + Math.sign(next[0] - current[0]) * radius,
+        current[1] + Math.sign(next[1] - current[1]) * radius,
+      ];
+      path += ` L ${beforeCorner[0]} ${beforeCorner[1]} Q ${current[0]} ${current[1]} ${afterCorner[0]} ${afterCorner[1]}`;
+    } else {
+      path += ` L ${current[0]} ${current[1]}`;
+    }
   }
 
-  const controlOneX = index === 1 && extendNeck
-    ? startX + (headwardEdge[0] - startX) * 0.55
-    : startX + (50 - startX) * 0.72;
-  const controlOneY = index === 1 && extendNeck
-    ? startY + (headwardEdge[1] - startY) * 0.55
-    : startY + (50 - startY) * 0.72;
-  const controlTwoX = endX + (50 - endX) * 0.72;
-  const controlTwoY = endY + (50 - endY) * 0.72;
-
-  return `M ${startX} ${startY} C ${controlOneX} ${controlOneY}, ${controlTwoX} ${controlTwoY}, ${endX} ${endY}`;
+  const tail = points.at(-1);
+  return `${path} L ${tail[0]} ${tail[1]}`;
 }
 
-function getTailPath(baseWidth) {
-  const margin = (100 - baseWidth) / 2;
-  return `M 100 ${margin} C 72 ${margin + 2}, 31 36, 8 43 Q 1 50 8 57 C 31 64, 72 ${100 - margin - 2}, 100 ${100 - margin} Z`;
+function getPointAtDistance(points, distance) {
+  let remaining = distance;
+
+  for (let index = 0; index < points.length - 1; index += 1) {
+    const start = points[index];
+    const end = points[index + 1];
+    const length = Math.hypot(end[0] - start[0], end[1] - start[1]);
+    if (remaining <= length) {
+      const progress = length === 0 ? 0 : remaining / length;
+      return [
+        start[0] + (end[0] - start[0]) * progress,
+        start[1] + (end[1] - start[1]) * progress,
+      ];
+    }
+    remaining -= length;
+  }
+
+  return points.at(-1);
+}
+
+function getPathSection(points, startDistance, endDistance) {
+  const section = [getPointAtDistance(points, startDistance)];
+  let distance = 0;
+
+  for (let index = 1; index < points.length - 1; index += 1) {
+    distance += Math.hypot(
+      points[index][0] - points[index - 1][0],
+      points[index][1] - points[index - 1][1],
+    );
+    if (distance > startDistance && distance < endDistance) section.push(points[index]);
+  }
+
+  section.push(getPointAtDistance(points, endDistance));
+  return section;
+}
+
+function getDigestPosition(segments, position) {
+  if (position == null || segments.length < 2) return null;
+  const index = Math.min(Math.floor(position), segments.length - 1);
+  const nextIndex = Math.min(index + 1, segments.length - 1);
+  const amount = position - index;
+  const first = segments[index];
+  const second = segments[nextIndex];
+  return [
+    first[0] + (second[0] - first[0]) * amount + 0.5,
+    first[1] + (second[1] - first[1]) * amount + 0.5,
+  ];
 }
 
 export default function Snake({
   segments,
+  direction,
   rewardColor,
   swallowEffect,
   confused,
   mouthOpen,
   crashEffect,
   purpleSnake,
+  moveInterval,
 }) {
+  const [visualSegments, setVisualSegments] = useState(segments);
+  const [visualPathPoints, setVisualPathPoints] = useState(segments);
+  const logicalSegmentsRef = useRef(segments);
   const [digestFrame, setDigestFrame] = useState({ id: null, progress: 0 });
   const swallowEffectId = swallowEffect?.id;
-  const facingDirection = getFacingDirection(segments);
+  const facingDirection = direction.toLowerCase();
   const digestActive = Boolean(
     swallowEffect && digestFrame.id === swallowEffect.id && digestFrame.progress < 1,
   );
   const digestPosition = digestActive && segments.length > 1
     ? 1 + digestFrame.progress * (segments.length - 2)
     : null;
+  const digestPoint = getDigestPosition(visualSegments, digestPosition);
+  const digestStrength = digestActive ? Math.sin(Math.PI * digestFrame.progress) : 0;
+  const digestIndex = digestPosition == null ? -1 : Math.floor(digestPosition);
+  const digestStart = visualSegments[Math.max(0, digestIndex)];
+  const digestEnd = visualSegments[Math.min(visualSegments.length - 1, digestIndex + 1)];
+  const digestAngle = digestStart && digestEnd
+    ? Math.atan2(digestEnd[1] - digestStart[1], digestEnd[0] - digestStart[0]) * 180 / Math.PI
+    : 0;
+  const bodyPath = getContinuousBodyPath(visualPathPoints);
+
+  useEffect(() => {
+    if (logicalSegmentsRef.current === segments) return undefined;
+
+    const startSegments = logicalSegmentsRef.current;
+    logicalSegmentsRef.current = segments;
+    const isOneStep = startSegments.length > 0
+      && segments.length > 0
+      && segments.length <= startSegments.length + 1
+      && Math.abs(segments[0][0] - startSegments[0][0])
+        + Math.abs(segments[0][1] - startSegments[0][1]) === 1
+      && segments[1]?.[0] === startSegments[0][0]
+      && segments[1]?.[1] === startSegments[0][1];
+
+    if (!isOneStep) {
+      setVisualSegments(segments);
+      setVisualPathPoints(segments);
+      return undefined;
+    }
+
+    const route = [segments[0], ...startSegments];
+    const duration = Math.max(50, moveInterval);
+    let frameId;
+    let startedAt;
+
+    const animate = (timestamp) => {
+      startedAt ??= timestamp;
+      const progress = Math.min((timestamp - startedAt) / duration, 1);
+      const headDistance = 1 - progress;
+      const nextVisualSegments = segments.map((_, index) => (
+        getPointAtDistance(route, headDistance + index)
+      ));
+      const bodyPoints = getPathSection(
+        route,
+        headDistance,
+        headDistance + Math.max(0, segments.length - 1),
+      );
+
+      setVisualSegments(nextVisualSegments);
+      setVisualPathPoints(bodyPoints);
+
+      if (progress < 1) {
+        frameId = window.requestAnimationFrame(animate);
+      } else {
+        setVisualSegments(segments);
+        setVisualPathPoints(segments);
+      }
+    };
+
+    frameId = window.requestAnimationFrame(animate);
+    return () => window.cancelAnimationFrame(frameId);
+  }, [segments, moveInterval]);
 
   useEffect(() => {
     if (swallowEffectId == null) return undefined;
@@ -114,78 +187,65 @@ export default function Snake({
     return () => window.cancelAnimationFrame(frameId);
   }, [swallowEffectId]);
 
-  const renderSegments = (layer = 'fill') => segments.map(([x, y], index) => {
+  const renderHead = (layer = 'fill') => {
+    const [x, y] = visualSegments[0];
+
     const outlineOnly = layer === 'outline';
-    const highlightOnly = layer === 'highlight';
-    if (highlightOnly && index === 0) return null;
-    const segmentType = index === 0
-      ? 'snake-head'
-      : index === segments.length - 1 ? 'snake-tail' : 'snake-body';
-    const connectionClass = getConnectionClass(segments, index);
-    const isCrashingHead = Boolean(crashEffect) && index === 0;
-    const tailProgress = (index - 1) / Math.max(segments.length - 3, 1);
-    const segmentWidth = 84 - Math.min(tailProgress, 1) * 30;
-    const tailBaseWidth = segments.length > 3 ? 62 : 92;
-    const digestDistance = digestPosition == null ? Infinity : Math.abs(index - digestPosition);
-    const digestStrength = Math.max(0, 1 - digestDistance / 1.35);
-    const expandedWidth = segmentWidth * (1 + digestStrength * 0.48);
+    const isCrashingHead = Boolean(crashEffect);
 
     return (
       <div
-        className={`snake-cell ${index === 0 ? 'snake-cell-head' : ''}`}
-        key={`segment-${index}`}
+        className="snake-cell snake-cell-head"
+        key={`head-${layer}`}
         style={{
           transform: `translate3d(${x * 100}%, ${y * 100}%, 0)`,
-          '--crash-delay': `${Math.min(index, 8) * 10}ms`,
         }}
-        >
+      >
         <div
-          className={`snake ${segmentType} ${connectionClass} ${digestStrength > 0 ? 'snake-digest-bulge' : ''} ${rewardColor ? `snake-reward reward-${rewardColor}` : ''} ${purpleSnake ? 'snake-confused' : ''} ${confused && !purpleSnake ? 'snake-confused-glow' : ''} ${confused && index === 0 ? 'snake-confused-head' : ''} ${mouthOpen && index === 0 ? 'snake-mouth-open' : ''} ${isCrashingHead ? `snake-crash crash-${crashEffect.direction.toLowerCase()}` : ''}`}
-          key="visual"
-          style={{
-            '--reward-delay': `${Math.min(index, 12) * 38}ms`,
-            '--segment-width': expandedWidth,
-            '--digest-tail-scale': 1 + digestStrength * 0.22,
-          }}
+          className={`snake snake-head ${rewardColor ? `snake-reward reward-${rewardColor}` : ''} ${purpleSnake ? 'snake-confused' : ''} ${confused && !purpleSnake ? 'snake-confused-glow' : ''} ${confused ? 'snake-confused-head' : ''} ${mouthOpen ? 'snake-mouth-open' : ''} ${isCrashingHead ? `snake-crash crash-${crashEffect.direction.toLowerCase()}` : ''}`}
         >
-          {index > 0 && index < segments.length - 1 && (
-            <svg className="snake-segment-art" viewBox="0 0 100 100" aria-hidden="true">
-              <path
-                className={highlightOnly ? 'snake-body-highlight' : undefined}
-                d={getBodyPath(segments, index, !highlightOnly)}
-              />
-            </svg>
-          )}
-          {index === 0 && (
-            <span className={`snake-face face-${facingDirection}`} aria-hidden="true">
-              <SnakeFace silhouetteOnly={outlineOnly} />
-            </span>
-          )}
-          {index === segments.length - 1 && segments.length > 1 && (
-            <svg
-              className={`snake-segment-art snake-tail-art tail-${connectionClass}`}
-              viewBox="0 0 100 100"
-              aria-hidden="true"
-            >
-              <path
-                className={highlightOnly ? 'snake-tail-highlight' : undefined}
-                d={highlightOnly
-                  ? `M 92 ${(100 - tailBaseWidth) / 2 + 13} Q 65 ${(100 - tailBaseWidth) / 2 + 14} 36 45`
-                  : getTailPath(tailBaseWidth)}
-              />
-            </svg>
-          )}
+          <span className={`snake-face face-${facingDirection}`} aria-hidden="true">
+            <SnakeFace silhouetteOnly={outlineOnly} />
+          </span>
         </div>
       </div>
     );
-  });
+  };
 
-  // Paint every outline behind every fill so joined pieces have no dark seams.
+  const bodyArt = (layer) => (
+    <svg
+      className={`snake-body-art snake-body-art-${layer}`}
+      viewBox={`0 0 ${BOARD_SIZE} ${BOARD_SIZE}`}
+      preserveAspectRatio="none"
+      aria-hidden="true"
+    >
+      {bodyPath && <path className="snake-body-path" d={bodyPath} />}
+      {digestPoint && layer !== 'highlight' && digestStrength > 0 && (
+        <ellipse
+          className="snake-digest-bump"
+          cx={digestPoint[0]}
+          cy={digestPoint[1]}
+          rx={(layer === 'outline' ? 0.62 : 0.54) + digestStrength * 0.16}
+          ry={(layer === 'outline' ? 0.56 : 0.46) + digestStrength * 0.07}
+          transform={`rotate(${digestAngle} ${digestPoint[0]} ${digestPoint[1]})`}
+        />
+      )}
+    </svg>
+  );
+
   return (
     <>
-      <div className="snake-outline-layer" aria-hidden="true">{renderSegments('outline')}</div>
-      {renderSegments()}
-      <div className="snake-highlight-layer" aria-hidden="true">{renderSegments('highlight')}</div>
+      <div className="snake-outline-layer" aria-hidden="true">
+        {bodyArt('outline')}
+        {renderHead('outline')}
+      </div>
+      <div className={`snake-body-fill ${purpleSnake ? 'snake-confused' : ''} ${confused && !purpleSnake ? 'snake-confused-glow' : ''} ${rewardColor ? `snake-body-reward reward-${rewardColor}` : ''}`}>
+        {bodyArt('fill')}
+      </div>
+      {renderHead()}
+      <div className="snake-highlight-layer" aria-hidden="true">
+        {bodyArt('highlight')}
+      </div>
     </>
   );
 }
