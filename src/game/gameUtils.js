@@ -151,7 +151,19 @@ export function createRelocatedConfusionPair(snake, direction, foods, hazard) {
   const anchorFood = foods.find((food) => (
     hazard.anchorPosition && samePosition(food.position, hazard.anchorPosition)
   ));
-  if (!anchorFood) return foods;
+  if (!anchorFood) {
+    const preservedFoods = foods.filter((food) => !samePosition(food.position, hazard.position));
+    const relocatedHazard = createFood({
+      snake,
+      color: 'purple',
+      zone: 'normal',
+      occupiedFoods: [...preservedFoods, { position: hazard.position }],
+      avoidPosition: getNextHead(snake[0], direction),
+    });
+    return relocatedHazard
+      ? [...preservedFoods, { ...relocatedHazard, isHazard: true }]
+      : foods;
+  }
 
   const preservedFoods = foods.filter((food) => (
     !food.isHazard && !samePosition(food.position, anchorFood.position)
@@ -193,8 +205,23 @@ export function hasAvailableMove(snake, direction) {
 }
 
 export function createFoodPair(snake, direction, options = {}) {
-  const { occupiedFoods = [], includeHazard = true } = options;
+  const {
+    occupiedFoods = [],
+    includeHazard = true,
+    purpleOnly = false,
+  } = options;
   const avoidPosition = getNextHead(snake[0], direction);
+  if (purpleOnly) {
+    const purpleEgg = createFood({
+      snake,
+      color: 'purple',
+      zone: 'normal',
+      occupiedFoods,
+      avoidPosition,
+    });
+    return purpleEgg ? [{ ...purpleEgg, isHazard: true }] : [];
+  }
+
   const firstFood = createFood({
     snake,
     color: 'tan',

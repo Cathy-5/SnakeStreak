@@ -42,16 +42,22 @@ const DIFFICULTIES = {
     label: 'Easy',
     moveInterval: 205,
     confusionDuration: 5_000,
+    crackedEggs: false,
+    purpleOnly: false,
   },
   normal: {
     label: 'Normal',
     moveInterval: 155,
     confusionDuration: 10_000,
+    crackedEggs: true,
+    purpleOnly: false,
   },
   difficult: {
     label: 'Difficult',
     moveInterval: 110,
     confusionDuration: 15_000,
+    crackedEggs: true,
+    purpleOnly: true,
   },
 };
 const HAZARD_RELOCATION_DELAY_MS = 900;
@@ -482,6 +488,7 @@ function App() {
 
       const maybeStartCrackedEgg = (snake) => {
         if (
+          !currentDifficultySettings.crackedEggs ||
           crackedEggUnlockedRef.current || crackedEggRef.current ||
           snake.length < STARTING_SEGMENTS.length * 2
         ) return false;
@@ -501,10 +508,13 @@ function App() {
         const nextFoods = createFoodPair(nextSnake, movementDirection, {
           occupiedFoods,
           includeHazard: persistentFoods.length === 0 && preserveHazard,
+          purpleOnly: currentDifficultySettings.purpleOnly,
         });
 
-        const normalFoodCount = nextFoods.filter((food) => !food.isHazard).length;
-        if (normalFoodCount < 1) {
+        const hasFoodToCollect = currentDifficultySettings.purpleOnly
+          ? nextFoods.length > 0
+          : nextFoods.some((food) => !food.isHazard);
+        if (!hasFoodToCollect) {
           setFoods([...nextFoods, ...persistentFoods]);
           scheduleRunEnding('victory');
           return;
@@ -663,16 +673,34 @@ function App() {
             setConfusionSeconds(currentDifficultySettings.confusionDuration / 1000);
             setFeedback({
               type: 'confusion',
-              text: `REVERSE DIRECTION · ${currentDifficultySettings.confusionDuration / 1000} SECONDS`,
+              text: `REVERSE · +1 SEGMENT · ${currentDifficultySettings.confusionDuration / 1000} SECONDS`,
             });
-            const movingSnake = [newHead, ...previousSegments.slice(0, -1)];
+            const movingSnake = [newHead, ...previousSegments];
             const remainingFoods = currentFoods.filter((food) => !food.isHazard);
-            const nextHazard = createRelocatedConfusionFood(
-              movingSnake,
-              movementDirection,
-              remainingFoods,
-            );
-            setFoods(nextHazard ? [...remainingFoods, nextHazard] : remainingFoods);
+            const startedCrackedEgg = maybeStartCrackedEgg(movingSnake);
+
+            if (currentDifficultySettings.purpleOnly) {
+              const occupiedFoods = crackedEggRef.current
+                ? [{ position: crackedEggRef.current.position }]
+                : [];
+              const nextFoods = createFoodPair(movingSnake, movementDirection, {
+                occupiedFoods,
+                purpleOnly: true,
+              });
+              setFoods(nextFoods);
+              if (nextFoods.length === 0) scheduleRunEnding('victory');
+            } else {
+              const nextHazard = createRelocatedConfusionFood(
+                movingSnake,
+                movementDirection,
+                remainingFoods,
+              );
+              setFoods(nextHazard ? [...remainingFoods, nextHazard] : remainingFoods);
+            }
+
+            if (startedCrackedEgg) {
+              setFeedback({ type: 'cracked', text: 'SOMETHING’S CRACKING…' });
+            }
             return movingSnake;
           }
 
@@ -735,7 +763,9 @@ function App() {
     clearTimeout(crackedEggRespawnTimerRef.current);
     crackedEggRespawnTimerRef.current = null;
     setSegments(STARTING_SEGMENTS);
-    const resetFoods = createFoodPair(STARTING_SEGMENTS, 'RIGHT');
+    const resetFoods = createFoodPair(STARTING_SEGMENTS, 'RIGHT', {
+      purpleOnly: DIFFICULTIES[nextDifficulty].purpleOnly,
+    });
     foodsRef.current = resetFoods;
     setFoods(resetFoods);
     setGameOver(false);
@@ -868,6 +898,11 @@ function App() {
               </button>
             ))}
           </div>
+          <small className="difficulty-rule-hint">
+            {difficulty === 'easy' && 'Purple eggs reverse you and add a segment · no chaser'}
+            {difficulty === 'normal' && 'Purple eggs reverse you and add a segment · cracked egg chases'}
+            {difficulty === 'difficult' && 'Purple eggs only · reverse and grow · cracked egg chases'}
+          </small>
           <div className="utility-actions">
             <button
               type="button"
