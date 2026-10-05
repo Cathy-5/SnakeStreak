@@ -504,7 +504,7 @@ function App() {
         });
 
         const normalFoodCount = nextFoods.filter((food) => !food.isHazard).length;
-        if (normalFoodCount < 2) {
+        if (normalFoodCount < 1) {
           setFoods([...nextFoods, ...persistentFoods]);
           scheduleRunEnding('victory');
           return;

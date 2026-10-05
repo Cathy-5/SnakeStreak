@@ -817,6 +817,11 @@
   transform-origin: 55px 79px;
 }
 
+.snake-head:not(.snake-mouth-open):not(.snake-crash) .snake-tongue {
+  display: block;
+  animation: tongue-flick 4s ease-in-out infinite;
+}
+
 .snake-mouth-open .snake-smile,
 .snake-mouth-open .snake-tongue,
 .snake-crash .snake-smile,
@@ -901,6 +906,7 @@
 .smash-effect i:nth-child(5) { --smash-x: 2px; --smash-y: -30px; animation-delay: 35ms; }
 
 .reward-brown { --reward-color: #a66e43; }
+.reward-tan { --reward-color: #dfc783; }
 .reward-pink { --reward-color: #ed8ca1; }
 .reward-blue { --reward-color: #78a9df; }
 .reward-purple { --reward-color: #8f5ac7; }
@@ -932,22 +938,10 @@
   transform: rotate(20deg);
 }
 
-.food-brown {
-  --egg-color: #a66e43;
-  --egg-light: #d9a878;
-  --egg-outline: #75482e;
-}
-
-.food-pink {
-  --egg-color: #ed8ca1;
-  --egg-light: #ffc7d1;
-  --egg-outline: #b95f74;
-}
-
-.food-blue {
-  --egg-color: #679bdd;
-  --egg-light: #b9dcff;
-  --egg-outline: #3f72aa;
+.food-tan {
+  --egg-color: #dfc783;
+  --egg-light: #fff0c4;
+  --egg-outline: #a48752;
 }
 
 .food-purple {

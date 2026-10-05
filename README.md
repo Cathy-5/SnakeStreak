@@ -12,7 +12,7 @@ Snake Break is a playful twist on the classic Snake game. Collect eggs, dodge pu
 
 - Classic grid-based Snake movement with keyboard and touch-swipe controls.
 - Three difficulty modes with different movement speeds and confusion durations.
-- Two-egg choice system that makes route planning more strategic.
+- One natural-color egg at a time, with a purple confusion egg as a special hazard.
 - Purple confusion eggs that reverse the controls for a limited time.
 - Difficult-mode purple surges with a visible `3, 2, 1` warning countdown.
 - A cracked egg that hatches when the snake reaches six segments and chases it across the board.
