@@ -75,7 +75,11 @@ export default function GameBoard({
         hazardLifetime={hazardLifetime}
       />
       {crackedEgg && (
-        <CrackedEgg position={crackedEgg.position} phase={crackedEgg.phase} />
+        <CrackedEgg
+          position={crackedEgg.position}
+          phase={crackedEgg.phase}
+          targetPosition={crackedEgg.phase === 'telegraph' ? crackedEgg.targetPosition : null}
+        />
       )}
       {tailEffect && <TailDissolve effect={tailEffect} />}
       {crashEffect && (

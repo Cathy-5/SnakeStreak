@@ -78,7 +78,7 @@
 .brand h1 .brand-word-rest { color: #f3a9c1; }
 
 .brand-b-character {
-  width: 1.08em;
+  width: 1.16em;
   height: 1.2em;
   flex: 0 0 auto;
   overflow: visible;
@@ -782,7 +782,8 @@
 .snake-open-mouth,
 .snake-crash-eyes,
 .snake-crash-mouth { display: none; }
-.snake-open-mouth { fill: #c83f70; }
+.snake-open-mouth { fill: #b89ac8; }
+.mouth-cavity { fill: #b89ac8; }
 .snake-open-mouth > path:first-child {
   stroke: var(--snake-ink);
   stroke-width: 3.2;
@@ -1000,20 +1001,62 @@
   stroke-linejoin: round;
 }
 
-.cracked-egg-crack,
-.cracked-egg-mouth {
-  fill: none;
-  stroke: #78472f;
-  stroke-width: 3;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.cracked-egg-eye { fill: #49372e; }
-
 .cracked-egg-chasing {
   filter: drop-shadow(0 0 5px rgba(205, 91, 58, .85));
   animation: cracked-egg-bob .34s ease-in-out infinite alternate, cracked-egg-alert .8s ease-in-out infinite alternate;
+}
+
+.cracked-egg-telegraph {
+  filter: drop-shadow(0 0 8px rgba(205, 91, 58, .95));
+  animation: cracked-egg-alert .22s ease-in-out infinite alternate;
+}
+
+.cracked-egg-shell-upper,
+.cracked-egg-shell-lower {
+  transform-box: fill-box;
+  transition: transform .24s ease-out;
+}
+
+.cracked-egg-chasing .cracked-egg-shell-upper {
+  transform: translateY(-1px);
+}
+
+.cracked-egg-chasing .cracked-egg-shell-lower {
+  transform: translateY(1px);
+}
+
+.cracked-egg-telegraph .cracked-egg-shell-upper {
+  transform: translateY(-2.5px);
+}
+
+.cracked-egg-telegraph .cracked-egg-shell-lower {
+  transform: translateY(2.5px);
+}
+
+.cracked-egg-lunging .cracked-egg-shell-upper {
+  transform: translateY(-4px);
+}
+
+.cracked-egg-lunging .cracked-egg-shell-lower {
+  transform: translateY(4px);
+}
+
+.cracked-egg-lunging {
+  filter: drop-shadow(0 0 10px rgba(205, 55, 35, 1));
+}
+
+.cracked-egg-target {
+  width: 70%;
+  height: 70%;
+  z-index: 2;
+  justify-self: center;
+  align-self: center;
+  box-sizing: border-box;
+  border: 2px dashed rgba(176, 64, 45, .85);
+  border-radius: 50%;
+  background: rgba(205, 91, 58, .14);
+  animation: cracked-egg-target-pulse .3s ease-in-out infinite alternate;
+  pointer-events: none;
 }
 
 .game-feedback {
@@ -1571,6 +1614,11 @@ button:focus-visible { outline: 3px solid var(--snake-ink); outline-offset: 3px;
 @keyframes cracked-egg-alert {
   from { filter: drop-shadow(0 0 2px rgba(205, 91, 58, .5)); }
   to { filter: drop-shadow(0 0 8px rgba(205, 91, 58, .95)); }
+}
+
+@keyframes cracked-egg-target-pulse {
+  from { opacity: .45; transform: scale(.72); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 @keyframes confusion-mark {

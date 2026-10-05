@@ -58,7 +58,9 @@ const HAZARD_RELOCATION_DELAY_MS = 900;
 const HAZARD_PAIR_LIFETIME_MS = 6_000;
 const CRACKED_EGG_WARNING_MS = 3_000;
 const CRACKED_EGG_CHASE_MS = 8_000;
-const CRACKED_EGG_RESPAWN_DELAY_MS = 2_500;
+const CRACKED_EGG_RESPAWN_DELAY_MS = 15_000;
+const CRACKED_EGG_LUNGE_WARNING_MS = 900;
+const CRACKED_EGG_LUNGE_STEPS = 2;
 const PURPLE_SURGE_DURATION_MS = 4_000;
 const PURPLE_SURGE_WARNING_MS = 3_000;
 const PURPLE_SURGE_INTERVAL_MS = 30_000;
@@ -193,11 +195,11 @@ function App() {
       recordFinishedRun(setRecords, difficulty, reason === 'victory');
     }
 
-    if (reason === 'wall' && crashData) {
+    if ((reason === 'wall' || reason === 'cracked') && crashData) {
       if (soundEnabledRef.current) playGameSound(audioBankRef.current, 'crash');
       const effectId = effectIdRef.current + 1;
       effectIdRef.current = effectId;
-      setCrashEffect({ id: effectId, ...crashData });
+      setCrashEffect({ id: effectId, kind: reason, ...crashData });
       setShowGameOver(false);
     } else {
       setCrashEffect(null);
@@ -313,6 +315,19 @@ function App() {
         setFeedback({ type: 'cracked', text: 'IT HATCHED · RUN!' });
       }, 1_000);
       return () => clearInterval(timer);
+    }
+
+    if (crackedEggPhase === 'telegraph') {
+      const id = crackedEggId;
+      const timer = setTimeout(() => {
+        const currentEgg = crackedEggRef.current;
+        if (!currentEgg || currentEgg.id !== id || currentEgg.phase !== 'telegraph') return;
+        const lungingEgg = { ...currentEgg, phase: 'lunging' };
+        crackedEggRef.current = lungingEgg;
+        setCrackedEgg(lungingEgg);
+        setFeedback({ type: 'cracked', text: 'IT’S LUNGING · DODGE!' });
+      }, CRACKED_EGG_LUNGE_WARNING_MS);
+      return () => clearTimeout(timer);
     }
 
     const id = crackedEggId;
@@ -525,44 +540,84 @@ function App() {
         }
 
         const activeCrackedEgg = crackedEggRef.current;
-        if (activeCrackedEgg?.phase === 'chasing') {
+        if (
+          activeCrackedEgg?.phase === 'chasing' ||
+          activeCrackedEgg?.phase === 'telegraph' ||
+          activeCrackedEgg?.phase === 'lunging'
+        ) {
           let nextCrackedPosition = activeCrackedEgg.position;
-          const [eggX, eggY] = activeCrackedEgg.position;
-          const candidates = [
-            [eggX + 1, eggY], [eggX - 1, eggY],
-            [eggX, eggY + 1], [eggX, eggY - 1],
-          ].filter(([x, y]) => (
-            x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE &&
-            !previousSegments.slice(0, -1).some((segment) => samePosition(segment, [x, y])) &&
-            !currentFoods.some((food) => samePosition(food.position, [x, y]))
-          ));
-
-          if (candidates.length) {
-            const distanceToHead = ([x, y]) => (
-              Math.abs(newHead[0] - x) + Math.abs(newHead[1] - y)
-            );
-            const closestDistance = Math.min(...candidates.map(distanceToHead));
-            const closestCandidates = candidates.filter((position) => (
-              distanceToHead(position) === closestDistance
+          const eggPath = [activeCrackedEgg.position];
+          const target = activeCrackedEgg.phase === 'lunging'
+            ? activeCrackedEgg.targetPosition
+            : newHead;
+          const getNextChaseCell = (from, toward) => {
+            const [eggX, eggY] = from;
+            const candidates = [
+              [eggX + 1, eggY], [eggX - 1, eggY],
+              [eggX, eggY + 1], [eggX, eggY - 1],
+            ].filter(([x, y]) => (
+              x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE &&
+              !currentFoods.some((food) => samePosition(food.position, [x, y]))
             ));
-            nextCrackedPosition = closestCandidates[
-              Math.floor(Math.random() * closestCandidates.length)
-            ];
+            if (!candidates.length) return from;
+
+            const distanceToTarget = ([x, y]) => (
+              Math.abs(toward[0] - x) + Math.abs(toward[1] - y)
+            );
+            const closestDistance = Math.min(...candidates.map(distanceToTarget));
+            return candidates.find((position) => distanceToTarget(position) === closestDistance);
+          };
+
+          if (activeCrackedEgg.phase === 'chasing') {
+            const distanceToHead = Math.abs(newHead[0] - nextCrackedPosition[0])
+              + Math.abs(newHead[1] - nextCrackedPosition[1]);
+            if (distanceToHead <= 3) {
+              const aimingEgg = {
+                ...activeCrackedEgg,
+                phase: 'telegraph',
+                targetPosition: [...newHead],
+              };
+              crackedEggRef.current = aimingEgg;
+              setCrackedEgg(aimingEgg);
+              setFeedback({ type: 'cracked', text: 'IT’S TAKING AIM · MOVE!' });
+            } else {
+              nextCrackedPosition = getNextChaseCell(nextCrackedPosition, newHead);
+              eggPath.push(nextCrackedPosition);
+            }
+          } else if (activeCrackedEgg.phase === 'lunging') {
+            for (let step = 0; step < CRACKED_EGG_LUNGE_STEPS; step += 1) {
+              if (samePosition(nextCrackedPosition, target)) break;
+              const nextCell = getNextChaseCell(nextCrackedPosition, target);
+              if (samePosition(nextCell, nextCrackedPosition)) break;
+              nextCrackedPosition = nextCell;
+              eggPath.push(nextCrackedPosition);
+            }
           }
 
           const nextSnakeBody = [newHead, ...previousSegments.slice(0, -1)];
-          const eggTouchesSnake = [activeCrackedEgg.position, nextCrackedPosition]
+          const eggTouchesSnake = eggPath
             .some((eggPosition) => nextSnakeBody.some((segment) => (
               samePosition(segment, eggPosition)
             )));
 
           if (eggTouchesSnake) {
-            scheduleRunEnding('cracked');
+            scheduleRunEnding('cracked', {
+              direction: movementDirection,
+              position: activeCrackedEgg.position,
+            });
             return previousSegments;
           }
 
-          if (!samePosition(nextCrackedPosition, activeCrackedEgg.position)) {
-            const movedEgg = { ...activeCrackedEgg, position: nextCrackedPosition };
+          const lungeFinished = activeCrackedEgg.phase === 'lunging' && (
+            samePosition(nextCrackedPosition, target) ||
+            samePosition(nextCrackedPosition, activeCrackedEgg.position)
+          );
+          if (eggPath.length > 1 || lungeFinished) {
+            const movedEgg = {
+              ...activeCrackedEgg,
+              position: nextCrackedPosition,
+              ...(lungeFinished ? { phase: 'chasing', targetPosition: undefined } : {}),
+            };
             crackedEggRef.current = movedEgg;
             setCrackedEgg(movedEgg);
           }
@@ -772,17 +827,17 @@ function App() {
             <div className="brand-copy">
               <h1 aria-label="Snake Break">
                 <span className="brand-word-snake">Snake</span>
-                <svg className="brand-b-character" viewBox="0 0 72 80" aria-hidden="true">
+                <svg className="brand-b-character" viewBox="0 0 80 84" aria-hidden="true">
                   <path
                     className="brand-b-shell"
-                    d="M18 5C39 1 59 8 65 24C69 34 65 40 57 42C67 47 69 57 64 67C57 79 35 82 18 75L10 69L16 62L9 56L16 50L9 44L16 38L9 31L16 25L10 18L17 13L13 9Z"
+                    d="M22 6C43 1 64 10 70 25C75 38 66 42 55 44C68 47 74 59 67 71C59 83 37 82 19 75L7 69L22 63L7 57L22 52L7 46L22 41L7 35L21 30L9 24L23 19L15 12Z"
                   />
-                  <path className="brand-b-spot" d="M38 20C41 17 44 20 47 20C50 19 53 22 51 25C55 27 52 31 49 32C48 36 44 37 41 34C38 36 34 33 36 30C32 28 34 24 37 24C35 22 36 21 38 20Z" />
-                  <path className="brand-b-spot" d="M41 53C43 50 46 52 48 51C51 49 54 52 52 55C56 57 53 60 50 61C49 64 46 66 43 63C40 66 37 62 39 60C35 58 37 55 40 55Z" />
-                  <path className="brand-b-freckle" d="M27 17C28 15 30 16 30 18C30 20 28 21 27 19Z" />
-                  <path className="brand-b-freckle" d="M57 34C58 32 60 33 60 35C60 37 58 38 57 36Z" />
-                  <path className="brand-b-freckle" d="M28 46C29 44 31 45 31 47C31 49 29 50 28 48Z" />
-                  <path className="brand-b-freckle" d="M57 70C58 68 60 69 60 71C60 73 58 74 57 72Z" />
+                  <path className="brand-b-spot" d="M43 15C49 12 57 18 56 25C55 31 49 36 44 34C39 32 38 26 41 22C39 19 40 16 43 15Z" />
+                  <path className="brand-b-spot" d="M46 50C52 47 59 52 59 58C59 64 52 69 47 67C41 66 39 60 42 56C40 53 42 51 46 50Z" />
+                  <circle className="brand-b-freckle" cx="31" cy="16" r="2" />
+                  <circle className="brand-b-freckle" cx="62" cy="34" r="1.8" />
+                  <circle className="brand-b-freckle" cx="32" cy="49" r="1.8" />
+                  <circle className="brand-b-freckle" cx="58" cy="73" r="2" />
                 </svg>
                 <span className="brand-word-rest">reak</span>
               </h1>
@@ -892,6 +947,18 @@ function App() {
               <div className="cracked-egg-status" role="status">
                 <span>It is chasing you</span>
                 <strong>{crackedEgg.secondsLeft}s</strong>
+              </div>
+            )}
+            {crackedEgg?.phase === 'telegraph' && (
+              <div className="cracked-egg-status cracked-egg-warning-status" role="status">
+                <span>It’s aiming at your last spot</span>
+                <strong>{(CRACKED_EGG_LUNGE_WARNING_MS / 1000).toFixed(1)}s</strong>
+              </div>
+            )}
+            {crackedEgg?.phase === 'lunging' && (
+              <div className="cracked-egg-status" role="status">
+                <span>It’s lunging · dodge!</span>
+                <strong>!</strong>
               </div>
             )}
             {purpleWarningSeconds > 0 && (

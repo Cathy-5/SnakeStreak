@@ -1,25 +1,34 @@
 import '../App.css'
 
-export default function CrackedEgg({ position, phase }) {
+export default function CrackedEgg({ position, phase, targetPosition }) {
   const [x, y] = position;
+  const targetStyle = targetPosition && {
+    gridColumn: targetPosition[0] + 1,
+    gridRow: targetPosition[1] + 1,
+  };
 
   return (
-    <div
-      className={`cracked-egg cracked-egg-${phase}`}
-      style={{ gridColumn: x + 1, gridRow: y + 1 }}
-      role="img"
-      aria-label={phase === 'warning' ? 'A cracked egg is hatching' : 'A cracked egg is chasing the snake'}
-    >
-      <svg viewBox="0 0 48 54" aria-hidden="true">
-        <path
-          className="cracked-egg-shell"
-          d="M24 3C14 3 5 19 5 33c0 11 8 18 19 18s19-7 19-18C43 19 34 3 24 3Z"
-        />
-        <path className="cracked-egg-crack" d="m20 5 4 8-5 5 7 4-5 7" />
-        <ellipse className="cracked-egg-eye" cx="17" cy="32" rx="2.2" ry="3" />
-        <ellipse className="cracked-egg-eye" cx="30" cy="32" rx="2.2" ry="3" />
-        <path className="cracked-egg-mouth" d="M19 41q5 4 10 0" />
-      </svg>
-    </div>
+    <>
+      <div
+        className={`cracked-egg cracked-egg-${phase}`}
+        style={{ gridColumn: x + 1, gridRow: y + 1 }}
+        role="img"
+        aria-label={phase === 'warning' ? 'A cracked egg is hatching' : 'A cracked egg is chasing the snake'}
+      >
+        <svg viewBox="0 0 64 68" aria-hidden="true">
+          <path
+            className="cracked-egg-shell cracked-egg-shell-upper"
+            d="M8 35L21 29L18 39L31 32L30 42L43 34L42 44L55 30C59 18 49 5 33 5C18 5 8 17 8 35Z"
+          />
+          <path
+            className="cracked-egg-shell cracked-egg-shell-lower"
+            d="M8 40L22 34L19 44L32 37L31 47L44 39L43 49L56 35C60 49 50 63 33 63C17 63 7 52 8 40Z"
+          />
+        </svg>
+      </div>
+      {targetStyle && (
+        <span className="cracked-egg-target" style={targetStyle} aria-hidden="true" />
+      )}
+    </>
   );
 }
