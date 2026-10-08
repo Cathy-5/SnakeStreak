@@ -50,6 +50,9 @@ const DIFFICULTIES = {
     moveInterval: 155,
     confusionDuration: 10_000,
     crackedEggs: true,
+    crackedEggMoveInterval: 310,
+    crackedEggLungeWarning: 1_200,
+    crackedEggLungeSteps: 1,
     purpleOnly: false,
   },
   difficult: {
@@ -57,6 +60,9 @@ const DIFFICULTIES = {
     moveInterval: 110,
     confusionDuration: 15_000,
     crackedEggs: true,
+    crackedEggMoveInterval: 110,
+    crackedEggLungeWarning: 900,
+    crackedEggLungeSteps: 2,
     purpleOnly: true,
   },
 };
@@ -65,8 +71,6 @@ const HAZARD_PAIR_LIFETIME_MS = 6_000;
 const CRACKED_EGG_WARNING_MS = 3_000;
 const CRACKED_EGG_CHASE_MS = 8_000;
 const CRACKED_EGG_RESPAWN_DELAY_MS = 15_000;
-const CRACKED_EGG_LUNGE_WARNING_MS = 900;
-const CRACKED_EGG_LUNGE_STEPS = 2;
 const PURPLE_SURGE_DURATION_MS = 4_000;
 const PURPLE_SURGE_WARNING_MS = 3_000;
 const PURPLE_SURGE_INTERVAL_MS = 30_000;
@@ -313,6 +317,7 @@ function App() {
         const chasingEgg = {
           ...currentEgg,
           phase: 'chasing',
+          nextMoveAt: Date.now() + difficultySettingsRef.current.crackedEggMoveInterval,
           endsAt: Date.now() + CRACKED_EGG_CHASE_MS,
           secondsLeft: CRACKED_EGG_CHASE_MS / 1000,
         };
@@ -332,7 +337,7 @@ function App() {
         crackedEggRef.current = lungingEgg;
         setCrackedEgg(lungingEgg);
         setFeedback({ type: 'cracked', text: 'IT’S LUNGING · DODGE!' });
-      }, CRACKED_EGG_LUNGE_WARNING_MS);
+      }, difficultySettingsRef.current.crackedEggLungeWarning);
       return () => clearTimeout(timer);
     }
 
@@ -578,7 +583,10 @@ function App() {
             return candidates.find((position) => distanceToTarget(position) === closestDistance);
           };
 
-          if (activeCrackedEgg.phase === 'chasing') {
+          if (
+            activeCrackedEgg.phase === 'chasing' &&
+            Date.now() + 10 >= activeCrackedEgg.nextMoveAt
+          ) {
             const distanceToHead = Math.abs(newHead[0] - nextCrackedPosition[0])
               + Math.abs(newHead[1] - nextCrackedPosition[1]);
             if (distanceToHead <= 3) {
@@ -595,7 +603,7 @@ function App() {
               eggPath.push(nextCrackedPosition);
             }
           } else if (activeCrackedEgg.phase === 'lunging') {
-            for (let step = 0; step < CRACKED_EGG_LUNGE_STEPS; step += 1) {
+            for (let step = 0; step < currentDifficultySettings.crackedEggLungeSteps; step += 1) {
               if (samePosition(nextCrackedPosition, target)) break;
               const nextCell = getNextChaseCell(nextCrackedPosition, target);
               if (samePosition(nextCell, nextCrackedPosition)) break;
@@ -626,6 +634,7 @@ function App() {
             const movedEgg = {
               ...activeCrackedEgg,
               position: nextCrackedPosition,
+              nextMoveAt: Date.now() + currentDifficultySettings.crackedEggMoveInterval,
               ...(lungeFinished ? { phase: 'chasing', targetPosition: undefined } : {}),
             };
             crackedEggRef.current = movedEgg;
@@ -987,7 +996,7 @@ function App() {
             {crackedEgg?.phase === 'telegraph' && (
               <div className="cracked-egg-status cracked-egg-warning-status" role="status">
                 <span>It’s aiming at your last spot</span>
-                <strong>{(CRACKED_EGG_LUNGE_WARNING_MS / 1000).toFixed(1)}s</strong>
+                <strong>{(difficultySettings.crackedEggLungeWarning / 1000).toFixed(1)}s</strong>
               </div>
             )}
             {crackedEgg?.phase === 'lunging' && (
